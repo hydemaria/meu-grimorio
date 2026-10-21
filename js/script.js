@@ -1,46 +1,3 @@
-// CONFIGURAÇÃO DA SUA SENHA GLOBAL
-const SENHA_SITE = "lua123"; // <- Troque pela senha que preferir!
-
-// Bloqueio imediato ao carregar o site
-document.addEventListener('DOMContentLoaded', () => {
-    protegerSite();
-    
-    // Inicializações padrão do seu site
-    carregarPerfil();
-    carregarPosts();
-    carregarWishlist();
-    carregarCursos();
-    carregarLivrosNuvem();
-    configurarToolbarEditor();
-});
-
-function protegerSite() {
-    let acessoLiberado = sessionStorage.getItem('grimorio_acesso_liberado');
-
-    while (acessoLiberado !== 'true') {
-        const senhaDigitada = prompt("🔮 Este Grimório é protegido. Digite a senha para entrar:");
-
-        if (senhaDigitada === SENHA_SITE) {
-            sessionStorage.setItem('grimorio_acesso_liberado', 'true');
-            alert("Boas-vindas ao Grimório ✦");
-            acessoLiberado = 'true';
-        } else if (senhaDigitada === null) {
-            // Se clicar em Cancelar, esconde o conteúdo do site
-            document.body.innerHTML = `
-                <div style="background-color: #140d1a; color: #e6c885; height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; font-family: sans-serif; text-align: center; padding: 2rem;">
-                    <h1>🔒 Acesso Restrito</h1>
-                    <p style="color: #f0eaee; margin-bottom: 2rem;">Você precisa da senha para visualizar este Grimório.</p>
-                    <button onclick="location.reload()" style="background: transparent; border: 1px solid #e6c885; color: #e6c885; padding: 0.8rem 1.5rem; cursor: pointer; border-radius: 4px;">Tentar Novamente</button>
-                </div>
-            `;
-            break;
-        } else {
-            alert("Senha incorreta!");
-        }
-    }
-}
-
-
 // VARIÁVEIS DE CONTROLE DE EDIÇÃO E NAVEGAÇÃO
 let postEditandoIndex = null;
 let wishlistEditandoIndex = null;
@@ -48,31 +5,10 @@ let cursoEditandoIndex = null;
 let livroEditandoIndex = null;
 let categoriaAtualBiblioteca = 'Todos';
 let termoBuscaBiblioteca = '';
+let filtroFeedAtual = { tipo: 'todos', valor: '' };
 
-// CONFIGURAÇÃO DA SUA SENHA 
-const SENHA_MEUS_ESCRITOS = "lua123"; 
-let escritosDesbloqueados = false; // Guarda se você já digitou a senha nesta sessão
-
-// 1. NAVEGAÇÃO ENTRE TELAS DO SITE (COM PROTEÇÃO SIMPLES)
+// 1. NAVEGAÇÃO ENTRE TELAS DO SITE
 function mudarSecao(idSecao) {
-    const secoesProtegidas = ['meus-escritos', 'indice-livro', 'leitura-capitulo'];
-
-    // Se a pessoa tentar acessar "Meus Escritos" e ainda não digitou a senha
-    if (secoesProtegidas.includes(idSecao) && !escritosDesbloqueados) {
-        const senhaDigitada = prompt("🔮 Esta área é reservada. Digite a senha para acessar Meus Escritos:");
-
-        if (senhaDigitada === SENHA_MEUS_ESCRITOS) {
-            escritosDesbloqueados = true; // Libera o acesso enquanto a aba estiver aberta
-            alert("Acesso concedido ✦");
-        } else if (senhaDigitada !== null) {
-            alert("Senha incorreta! Acesso negado.");
-            return; // Impede de abrir a tela
-        } else {
-            return; // Se clicar em "Cancelar"
-        }
-    }
-
-    // Navegação normal
     let secoes = document.querySelectorAll('.secao');
     secoes.forEach(secao => {
         secao.classList.remove('ativa');
@@ -86,53 +22,65 @@ function mudarSecao(idSecao) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// 2. INICIALIZAÇÃO E CONEXÃO DE EVENTOS
+// 2. INICIALIZAÇÃO E EVENTOS
 document.addEventListener('DOMContentLoaded', () => {
     carregarPerfil();
     carregarPosts();
     carregarWishlist();
     carregarCursos();
     carregarLivrosNuvem();
+    atualizarSubmenuFeiticos();
 
-    // Botões de formulários
     const btnPublicarPost = document.querySelector('#editor-post .botoes-acao button:last-child');
-    if (btnPublicarPost) btnPublicarPost.addEventListener('click', salvarPost);
-
-    const btnSalvarWishlist = document.querySelector('#novo-item-wishlist .botoes-acao button:last-child');
-    if (btnSalvarWishlist) btnSalvarWishlist.addEventListener('click', salvarWishlist);
-
-    const btnSalvarCurso = document.querySelector('#novo-curso .botoes-acao button:last-child');
-    if (btnSalvarCurso) btnSalvarCurso.addEventListener('click', salvarCurso);
+    if (btnPublicarPost) btnPublicarPost.onclick = salvarPost;
 
     configurarToolbarEditor();
 });
 
-// 3. PERFIL & FOTO
+// 3. FOTO DE PERFIL (UPLOAD DIRETO DO PC + COMPACTAÇÃO VIA CANVAS)
 function carregarPerfil() {
     const fotoSalva = localStorage.getItem('grimorio_foto_perfil');
     const containerFoto = document.getElementById('avatar-perfil');
 
     if (containerFoto) {
         if (fotoSalva && fotoSalva.trim() !== '') {
-            containerFoto.innerHTML = `<img src="${fotoSalva}" alt="Perfil" style="width: 100%; height: 100%; object-fit: cover;">`;
+            containerFoto.innerHTML = `<img src="${fotoSalva}" alt="Perfil" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">`;
         } else {
             containerFoto.innerHTML = '🔮';
         }
     }
 }
 
-function alterarFotoPerfil() {
-    const fotoAtual = localStorage.getItem('grimorio_foto_perfil') || '';
-    const novaUrl = prompt('Cole a URL da sua foto de perfil (link da imagem):', fotoAtual);
+function uploadFotoPerfilComputador(event) {
+    const file = event.target.files[0];
+    if (!file) return;
 
-    if (novaUrl !== null) {
-        if (novaUrl.trim() === '') {
-            localStorage.removeItem('grimorio_foto_perfil');
-        } else {
-            localStorage.setItem('grimorio_foto_perfil', novaUrl.trim());
-        }
-        carregarPerfil();
-    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const img = new Image();
+        img.src = e.target.result;
+        img.onload = function() {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            const maxLado = 300;
+            canvas.width = maxLado;
+            canvas.height = maxLado;
+
+            const minDim = Math.min(img.width, img.height);
+            const startX = (img.width - minDim) / 2;
+            const startY = (img.height - minDim) / 2;
+
+            ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, maxLado, maxLado);
+
+            const imagemOtimizada = canvas.toDataURL('image/jpeg', 0.85);
+            localStorage.setItem('grimorio_foto_perfil', imagemOtimizada);
+            
+            carregarPerfil();
+        };
+    };
+    
+    reader.readAsDataURL(file);
 }
 
 // 4. EDITOR DE TEXTO RICO
@@ -160,17 +108,13 @@ function inserirDivisor() {
     if (area) area.focus();
 }
 
-// 5. MÓDULO DE POSTS (FEED DO BLOG)
+// 5. MÓDULO DE POSTS & NAVEGAÇÃO DE CATEGORIAS / TAGS
 function salvarPost() {
-    const container = document.getElementById('editor-post');
-    const inputTitulo = container.querySelector('.grupo-campo input');
-    const selectCategoria = container.querySelector('select');
-    const inputTags = container.querySelectorAll('.campo input')[0];
-    const areaConteudo = container.querySelector('.editor-area');
-
-    const titulo = inputTitulo.value.trim();
-    const categoria = selectCategoria.options[selectCategoria.selectedIndex].text;
-    const tags = inputTags.value.trim();
+    const titulo = document.getElementById('post-titulo-input').value.trim();
+    const selectCat = document.getElementById('post-categoria-select');
+    const categoria = selectCat.options[selectCat.selectedIndex].text;
+    const tagsRaw = document.getElementById('post-tags-input').value.trim();
+    const areaConteudo = document.querySelector('#editor-post .editor-area');
     const conteudo = areaConteudo.innerHTML.trim();
 
     if (!titulo || areaConteudo.innerText.trim() === '') {
@@ -185,7 +129,7 @@ function salvarPost() {
     const postData = {
         titulo: titulo,
         categoria: categoria === 'Selecione...' ? 'Geral' : categoria,
-        tags: tags || 'Anotações',
+        tags: tagsRaw || 'Anotações',
         conteudo: conteudo,
         data: dataFormatada
     };
@@ -201,48 +145,115 @@ function salvarPost() {
 
     localStorage.setItem('grimorio_posts', JSON.stringify(posts));
 
-    inputTitulo.value = '';
-    selectCategoria.selectedIndex = 0;
-    inputTags.value = '';
+    document.getElementById('post-titulo-input').value = '';
+    selectCat.selectedIndex = 0;
+    document.getElementById('post-tags-input').value = '';
     areaConteudo.innerHTML = '';
 
     carregarPosts();
+    atualizarSubmenuFeiticos();
     mudarSecao('feed');
 }
 
 function carregarPosts() {
     const posts = JSON.parse(localStorage.getItem('grimorio_posts')) || [];
-    const containerFeed = document.getElementById('feed');
+    const containerFeed = document.getElementById('container-feed-posts');
+    const btnLimpar = document.getElementById('btn-limpar-filtro-feed');
+    const tituloFiltro = document.getElementById('filtro-feed-titulo');
 
     if (!containerFeed) return;
 
-    if (posts.length === 0) {
+    let postsFiltrados = posts;
+
+    if (filtroFeedAtual.tipo === 'categoria') {
+        postsFiltrados = posts.filter(p => p.categoria.toLowerCase() === filtroFeedAtual.valor.toLowerCase());
+        tituloFiltro.innerText = `Mostrando categoria: ${filtroFeedAtual.valor}`;
+        if (btnLimpar) btnLimpar.style.display = 'inline-block';
+    } else if (filtroFeedAtual.tipo === 'tag') {
+        postsFiltrados = posts.filter(p => p.tags && p.tags.toLowerCase().includes(filtroFeedAtual.valor.toLowerCase()));
+        tituloFiltro.innerText = `Mostrando tag: #${filtroFeedAtual.valor}`;
+        if (btnLimpar) btnLimpar.style.display = 'inline-block';
+    } else {
+        tituloFiltro.innerText = 'Mostrando: Todos os registros';
+        if (btnLimpar) btnLimpar.style.display = 'none';
+    }
+
+    if (postsFiltrados.length === 0) {
         containerFeed.innerHTML = `
-            <div class="post-card">
-                <div class="post-meta">20 de Outubro de 2026 ✦ Feitiços ✦ Banimento</div>
-                <h2 class="post-titulo">Banimento com Louro</h2>
-                <p>Um ritual simples e poderoso utilizando o fogo e a fumaça do louro para limpar energias estagnadas e afastar influências indesejadas do ambiente. Ideal para ser feito na lua minguante.</p>
-                <button class="btn-ler" onclick="mudarSecao('leitura-post')">Ler registro completo →</button>
+            <div class="post-card" style="text-align: center; padding: 2rem;">
+                <p style="color: var(--texto-secundario);">Nenhum registro encontrado nesta categoria ou tag.</p>
             </div>
         `;
-    } else {
-        containerFeed.innerHTML = '';
-        posts.forEach((post, index) => {
-            const textoLimpo = post.conteudo.replace(/<[^>]*>?/gm, '');
-            const resumo = textoLimpo.length > 180 ? textoLimpo.substring(0, 180) + '...' : textoLimpo;
+        return;
+    }
 
-            containerFeed.innerHTML += `
-                <div class="post-card">
-                    <div class="post-meta">${post.data} ✦ ${post.categoria} ✦ ${post.tags}</div>
-                    <h2 class="post-titulo">${post.titulo}</h2>
-                    <p>${resumo}</p>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
-                        <button class="btn-ler" style="margin-top: 0;" onclick="lerPost(${index})">Ler registro completo →</button>
-                        <button class="btn-ler" style="margin-top: 0;" onclick="editarPost(${index})">✏️ Editar</button>
-                        <button class="btn-ler" style="margin-top: 0; border-color: rgba(229, 115, 115, 0.5); color: #e57373;" onclick="excluirPost(${index})">🗑️ Excluir</button>
-                    </div>
+    containerFeed.innerHTML = '';
+    postsFiltrados.forEach((post) => {
+        const indexReal = posts.indexOf(post);
+        const textoLimpo = post.conteudo.replace(/<[^>]*>?/gm, '');
+        const resumo = textoLimpo.length > 180 ? textoLimpo.substring(0, 180) + '...' : textoLimpo;
+
+        const tagsArray = post.tags ? post.tags.split(',').map(t => t.trim()) : [];
+        const tagsHtml = tagsArray.map(tag => 
+            `<span onclick="filtrarFeedPorTag('${tag.replace(/'/g, "\\'")}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado);">#${tag}</span>`
+        ).join(', ');
+
+        containerFeed.innerHTML += `
+            <div class="post-card">
+                <div class="post-meta">
+                    ${post.data} ✦ 
+                    <span onclick="filtrarFeedPorCategoria('${post.categoria}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado);">${post.categoria}</span> 
+                    ✦ ${tagsHtml}
                 </div>
-            `;
+                <h2 class="post-titulo">${post.titulo}</h2>
+                <p>${resumo}</p>
+                <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
+                    <button class="btn-ler" style="margin-top: 0;" onclick="lerPost(${indexReal})">Ler registro completo →</button>
+                    <button class="btn-ler" style="margin-top: 0;" onclick="editarPost(${indexReal})">✏️ Editar</button>
+                    <button class="btn-ler" style="margin-top: 0; border-color: rgba(229, 115, 115, 0.5); color: #e57373;" onclick="excluirPost(${indexReal})">🗑️ Excluir</button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+function filtrarFeedPorCategoria(cat) {
+    if (cat === 'Todos') {
+        filtroFeedAtual = { tipo: 'todos', valor: '' };
+    } else {
+        filtroFeedAtual = { tipo: 'categoria', valor: cat };
+    }
+    carregarPosts();
+    mudarSecao('feed');
+}
+
+function filtrarFeedPorTag(tag) {
+    filtroFeedAtual = { tipo: 'tag', valor: tag };
+    carregarPosts();
+    mudarSecao('feed');
+}
+
+function atualizarSubmenuFeiticos() {
+    const posts = JSON.parse(localStorage.getItem('grimorio_posts')) || [];
+    const containerSubmenu = document.getElementById('submenu-tags-feiticos');
+
+    if (!containerSubmenu) return;
+
+    const postsFeiticos = posts.filter(p => p.categoria === 'Feitiços');
+    let tagsSet = new Set();
+
+    postsFeiticos.forEach(p => {
+        if (p.tags) {
+            p.tags.split(',').forEach(t => tagsSet.add(t.trim()));
+        }
+    });
+
+    if (tagsSet.size === 0) {
+        containerSubmenu.innerHTML = `<a style="font-size: 0.8rem; color: var(--texto-secundario);">Nenhuma tag criada</a>`;
+    } else {
+        containerSubmenu.innerHTML = '';
+        tagsSet.forEach(tag => {
+            containerSubmenu.innerHTML += `<a onclick="filtrarFeedPorTag('${tag.replace(/'/g, "\\'")}')">✦ ${tag}</a>`;
         });
     }
 }
@@ -253,9 +264,18 @@ function lerPost(index) {
 
     if (!post) return;
 
+    const tagsArray = post.tags ? post.tags.split(',').map(t => t.trim()) : [];
+    const tagsHtml = tagsArray.map(tag => 
+        `<span onclick="filtrarFeedPorTag('${tag.replace(/'/g, "\\'")}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado);">#${tag}</span>`
+    ).join(', ');
+
     const containerLeitura = document.getElementById('leitura-post');
     containerLeitura.innerHTML = `
-        <div class="post-meta" style="text-align: center;">${post.data} ✦ ${post.categoria}</div>
+        <div class="post-meta" style="text-align: center;">
+            ${post.data} ✦ 
+            <span onclick="filtrarFeedPorCategoria('${post.categoria}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado);">${post.categoria}</span>
+            ✦ ${tagsHtml}
+        </div>
         <h1 style="text-align: center; margin-bottom: 2rem;">${post.titulo}</h1>
         <div>${post.conteudo}</div>
         <button class="btn-ler" onclick="mudarSecao('feed')" style="margin-top: 3rem;">← Voltar para o Início</button>
@@ -272,12 +292,11 @@ function editarPost(index) {
 
     postEditandoIndex = index;
 
-    const container = document.getElementById('editor-post');
-    container.querySelector('.grupo-campo input').value = post.titulo;
-    container.querySelectorAll('.campo input')[0].value = post.tags;
-    container.querySelector('.editor-area').innerHTML = post.conteudo;
+    document.getElementById('post-titulo-input').value = post.titulo;
+    document.getElementById('post-tags-input').value = post.tags;
+    document.querySelector('#editor-post .editor-area').innerHTML = post.conteudo;
 
-    const select = container.querySelector('select');
+    const select = document.getElementById('post-categoria-select');
     for (let i = 0; i < select.options.length; i++) {
         if (select.options[i].text === post.categoria) {
             select.selectedIndex = i;
@@ -294,10 +313,290 @@ function excluirPost(index) {
         posts.splice(index, 1);
         localStorage.setItem('grimorio_posts', JSON.stringify(posts));
         carregarPosts();
+        atualizarSubmenuFeiticos();
     }
 }
 
-// 6. MÓDULO DA BIBLIOTECA VIRTUAL (NUVEM, BUSCA E ETIQUETAS)
+// 6. MÓDULO DE CURSOS
+function toggleCampoCertificado(status) {
+    const box = document.getElementById('box-upload-certificado');
+    if (box) {
+        box.style.display = status === 'concluido' ? 'block' : 'none';
+    }
+}
+
+function salvarCurso() {
+    const titulo = document.getElementById('curso-titulo-input').value.trim();
+    const instituicao = document.getElementById('curso-instituicao-input').value.trim();
+    const status = document.getElementById('curso-status-select').value;
+    const descricao = document.getElementById('curso-descricao-input').value.trim();
+    const fileInput = document.getElementById('curso-certificado-file');
+
+    if (!titulo) {
+        alert('Por favor, preencha o título do curso.');
+        return;
+    }
+
+    let cursos = JSON.parse(localStorage.getItem('grimorio_cursos')) || [];
+    let certificadoExistente = (cursoEditandoIndex !== null && cursos[cursoEditandoIndex]) ? cursos[cursoEditandoIndex].certificado : null;
+
+    const finalizarSalvar = (certificadoBase64) => {
+        const cursoData = {
+            titulo: titulo,
+            instituicao: instituicao || 'Estudo Independente',
+            status: status,
+            descricao: descricao || 'Anotações sobre o aprendizado.',
+            certificado: certificadoBase64 || certificadoExistente
+        };
+
+        if (cursoEditandoIndex !== null) {
+            cursos[cursoEditandoIndex] = cursoData;
+            cursoEditandoIndex = null;
+        } else {
+            cursos.push(cursoData);
+        }
+
+        localStorage.setItem('grimorio_cursos', JSON.stringify(cursos));
+
+        document.getElementById('curso-titulo-input').value = '';
+        document.getElementById('curso-instituicao-input').value = '';
+        document.getElementById('curso-status-select').selectedIndex = 0;
+        document.getElementById('curso-descricao-input').value = '';
+        if (fileInput) fileInput.value = '';
+        toggleCampoCertificado('andamento');
+
+        carregarCursos();
+        mudarSecao('cursos');
+    };
+
+    if (status === 'concluido' && fileInput && fileInput.files && fileInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            finalizarSalvar(e.target.result);
+        };
+        reader.readAsDataURL(fileInput.files[0]);
+    } else {
+        finalizarSalvar(null);
+    }
+}
+
+function carregarCursos() {
+    const cursos = JSON.parse(localStorage.getItem('grimorio_cursos')) || [];
+    const containerLista = document.getElementById('lista-cursos');
+
+    if (!containerLista) return;
+
+    if (cursos.length === 0) {
+        containerLista.innerHTML = `
+            <div class="post-card">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                    <h2 class="post-titulo" style="margin: 0; font-size: 1.5rem;">Desenvolvimento Web & Python</h2>
+                    <span class="badge-status status-andamento">Em Andamento</span>
+                </div>
+                <div class="post-meta" style="margin-bottom: 1rem;">Lógica, Automações & Projetos Práticos</div>
+                <p>Estudos focados na construção de aplicações web, lógica de programação backend, terminal Linux e projetos independentes.</p>
+            </div>
+        `;
+    } else {
+        containerLista.innerHTML = '';
+        cursos.forEach((curso, index) => {
+            let statusClass = 'status-andamento';
+            let statusTexto = 'Em Andamento';
+
+            if (curso.status === 'concluido') {
+                statusClass = 'status-concluido';
+                statusTexto = 'Concluído ✨';
+            } else if (curso.status === 'pausado') {
+                statusClass = 'status-desejado';
+                statusTexto = 'Pausado';
+            }
+
+            const certificadoBtn = (curso.status === 'concluido' && curso.certificado)
+                ? `<a href="${curso.certificado}" target="_blank" download="certificado_${curso.titulo}.pdf" style="text-decoration: none;">
+                    <button class="btn-ler" style="margin-top: 0; background: rgba(230, 200, 133, 0.2); color: var(--dourado);">📜 Ver Certificado</button>
+                   </a>`
+                : '';
+
+            containerLista.innerHTML += `
+                <div class="post-card">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                        <h2 class="post-titulo" style="margin: 0; font-size: 1.5rem;">${curso.titulo}</h2>
+                        <span class="badge-status ${statusClass}">${statusTexto}</span>
+                    </div>
+                    <div class="post-meta" style="margin-bottom: 1rem;">${curso.instituicao}</div>
+                    <p>${curso.descricao}</p>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; margin-top: 1rem;">
+                        ${certificadoBtn}
+                        <button class="btn-ler" style="margin-top: 0;" onclick="editarCurso(${index})">✏️ Editar</button>
+                        <button class="btn-ler" style="margin-top: 0; border-color: rgba(229, 115, 115, 0.5); color: #e57373;" onclick="excluirCurso(${index})">🗑️ Excluir</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+}
+
+function editarCurso(index) {
+    const cursos = JSON.parse(localStorage.getItem('grimorio_cursos')) || [];
+    const curso = cursos[index];
+
+    if (!curso) return;
+
+    cursoEditandoIndex = index;
+
+    document.getElementById('curso-titulo-input').value = curso.titulo;
+    document.getElementById('curso-instituicao-input').value = curso.instituicao;
+    document.getElementById('curso-status-select').value = curso.status;
+    document.getElementById('curso-descricao-input').value = curso.descricao;
+
+    toggleCampoCertificado(curso.status);
+
+    mudarSecao('novo-curso');
+}
+
+function excluirCurso(index) {
+    const cursos = JSON.parse(localStorage.getItem('grimorio_cursos')) || [];
+    if (confirm(`Remover "${cursos[index].titulo}" da lista de cursos?`)) {
+        cursos.splice(index, 1);
+        localStorage.setItem('grimorio_cursos', JSON.stringify(cursos));
+        carregarCursos();
+    }
+}
+
+// 7. MÓDULO DA WISHLIST
+function salvarWishlist() {
+    const nome = document.getElementById('wishlist-nome-input').value.trim();
+    const categoria = document.getElementById('wishlist-categoria-input').value.trim();
+    const linkFoto = document.getElementById('wishlist-foto-input').value.trim();
+    const linkCompra = document.getElementById('wishlist-compra-input').value.trim();
+    const status = document.getElementById('wishlist-status-select').value;
+
+    if (!nome) {
+        alert('Por favor, preencha o nome do item.');
+        return;
+    }
+
+    const itemWishlist = {
+        nome: nome,
+        categoria: categoria || 'Geral',
+        linkFoto: linkFoto || '',
+        linkCompra: linkCompra || '#',
+        status: status
+    };
+
+    let wishlist = JSON.parse(localStorage.getItem('grimorio_wishlist')) || [];
+
+    if (wishlistEditandoIndex !== null) {
+        wishlist[wishlistEditandoIndex] = itemWishlist;
+        wishlistEditandoIndex = null;
+    } else {
+        wishlist.push(itemWishlist);
+    }
+
+    localStorage.setItem('grimorio_wishlist', JSON.stringify(wishlist));
+
+    document.getElementById('wishlist-nome-input').value = '';
+    document.getElementById('wishlist-categoria-input').value = '';
+    document.getElementById('wishlist-foto-input').value = '';
+    document.getElementById('wishlist-compra-input').value = '';
+    document.getElementById('wishlist-status-select').selectedIndex = 0;
+
+    carregarWishlist();
+    mudarSecao('wishlist');
+}
+
+function alternarStatusWishlist(index) {
+    let wishlist = JSON.parse(localStorage.getItem('grimorio_wishlist')) || [];
+    if (wishlist[index]) {
+        wishlist[index].status = wishlist[index].status === 'adquirido' ? 'desejado' : 'adquirido';
+        localStorage.setItem('grimorio_wishlist', JSON.stringify(wishlist));
+        carregarWishlist();
+    }
+}
+
+function carregarWishlist() {
+    const wishlist = JSON.parse(localStorage.getItem('grimorio_wishlist')) || [];
+    const containerGrid = document.getElementById('lista-wishlist-grid');
+
+    if (!containerGrid) return;
+
+    if (wishlist.length === 0) {
+        containerGrid.innerHTML = `
+            <div class="post-card" style="margin-bottom: 0; padding: 1.5rem; text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <div style="width: 100%; height: 160px; background: rgba(34, 22, 43, 0.8); border: 1px dashed var(--dourado); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-detalhe); color: var(--dourado); margin-bottom: 1rem; border-radius: 4px;">[ Foto ]</div>
+                    <h3 style="font-family: var(--fonte-titulo); color: var(--dourado); margin: 0 0 0.5rem 0; font-size: 1.2rem; font-weight: normal;">Bíblia Clássica do Tarot</h3>
+                    <div class="post-meta" style="font-size: 0.8rem; margin-bottom: 0.8rem;">Livro Físico · Referência</div>
+                </div>
+                <div>
+                    <span class="badge-status status-desejado" style="display: inline-block; margin-bottom: 1rem;">Desejado</span>
+                </div>
+            </div>
+        `;
+    } else {
+        containerGrid.innerHTML = '';
+        wishlist.forEach((item, index) => {
+            const fotoHtml = item.linkFoto 
+                ? `<img src="${item.linkFoto}" alt="${item.nome}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 4px; border: 1px solid var(--dourado); margin-bottom: 1rem;">`
+                : `<div style="width: 100%; height: 160px; background: rgba(34, 22, 43, 0.8); border: 1px dashed var(--dourado); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-detalhe); color: var(--dourado); margin-bottom: 1rem; border-radius: 4px;">[ Foto ]</div>`;
+
+            const statusClass = item.status === 'adquirido' ? 'status-concluido' : 'status-desejado';
+            const statusTexto = item.status === 'adquirido' ? 'Adquirido ✨' : 'Desejado';
+
+            const botaoCompra = item.linkCompra && item.linkCompra !== '#'
+                ? `<a href="${item.linkCompra}" target="_blank" style="text-decoration: none; display: block;">
+                        <button class="btn-ler" style="width: 100%; margin-top: 0;">🛒 Onde Comprar ↗</button>
+                   </a>`
+                : '';
+
+            containerGrid.innerHTML += `
+                <div class="post-card" style="margin-bottom: 0; padding: 1.5rem; text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
+                    <div>
+                        ${fotoHtml}
+                        <h3 style="font-family: var(--fonte-titulo); color: var(--dourado); margin: 0 0 0.5rem 0; font-size: 1.2rem; font-weight: normal;">${item.nome}</h3>
+                        <div class="post-meta" style="font-size: 0.8rem; margin-bottom: 0.8rem;">${item.categoria}</div>
+                    </div>
+                    <div>
+                        <span class="badge-status ${statusClass}" onclick="alternarStatusWishlist(${index})" style="display: inline-block; margin-bottom: 1rem; cursor: pointer;" title="Clique para alterar status">${statusTexto}</span>
+                        ${botaoCompra}
+                        <div style="margin-top: 0.8rem; display: flex; gap: 0.5rem; justify-content: center;">
+                            <button class="btn-ler" style="margin-top: 0; font-size: 0.8rem; padding: 0.2rem 0.6rem;" onclick="editarWishlist(${index})">✏️ Editar</button>
+                            <button class="btn-ler" style="margin-top: 0; font-size: 0.8rem; padding: 0.2rem 0.6rem; border-color: rgba(229, 115, 115, 0.5); color: #e57373;" onclick="excluirWishlist(${index})">🗑️ Remover</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+        });
+    }
+}
+
+function editarWishlist(index) {
+    const wishlist = JSON.parse(localStorage.getItem('grimorio_wishlist')) || [];
+    const item = wishlist[index];
+
+    if (!item) return;
+
+    wishlistEditandoIndex = index;
+
+    document.getElementById('wishlist-nome-input').value = item.nome;
+    document.getElementById('wishlist-categoria-input').value = item.categoria;
+    document.getElementById('wishlist-foto-input').value = item.linkFoto;
+    document.getElementById('wishlist-compra-input').value = item.linkCompra;
+    document.getElementById('wishlist-status-select').value = item.status;
+
+    mudarSecao('novo-item-wishlist');
+}
+
+function excluirWishlist(index) {
+    const wishlist = JSON.parse(localStorage.getItem('grimorio_wishlist')) || [];
+    if (confirm(`Remover "${wishlist[index].nome}" da sua Wishlist?`)) {
+        wishlist.splice(index, 1);
+        localStorage.setItem('grimorio_wishlist', JSON.stringify(wishlist));
+        carregarWishlist();
+    }
+}
+
+// 8. MÓDULO DA BIBLIOTECA VIRTUAL
 function filtrarBiblioteca(categoriaOuTag) {
     categoriaAtualBiblioteca = categoriaOuTag;
 
@@ -390,7 +689,7 @@ function carregarLivrosNuvem() {
     if (acervo.length === 0) {
         containerLista.innerHTML = `
             <div class="post-card" style="text-align: center; padding: 2rem;">
-                <p style="color: var(--texto-secundario);">Nenhum livro encontrado. Tente buscar por outros termos ou troque de categoria.</p>
+                <p style="color: var(--texto-secundario);">Nenhum livro encontrado.</p>
             </div>
         `;
     } else {
@@ -455,238 +754,7 @@ function excluirLivroNuvem(index) {
     }
 }
 
-// 7. MÓDULO DE CURSOS E ESTUDOS
-function salvarCurso() {
-    const container = document.getElementById('novo-curso');
-    const inputs = container.querySelectorAll('input');
-    const select = container.querySelector('select');
-
-    const titulo = inputs[0].value.trim();
-    const instituicao = inputs[1].value.trim();
-    const status = select.value;
-    const descricao = inputs[2].value.trim();
-
-    if (!titulo) {
-        alert('Por favor, preencha o título do curso.');
-        return;
-    }
-
-    const cursoData = {
-        titulo: titulo,
-        instituicao: instituicao || 'Estudo Independente',
-        status: status,
-        descricao: descricao || 'Anotações sobre o aprendizado.'
-    };
-
-    let cursos = JSON.parse(localStorage.getItem('grimorio_cursos')) || [];
-
-    if (cursoEditandoIndex !== null) {
-        cursos[cursoEditandoIndex] = cursoData;
-        cursoEditandoIndex = null;
-    } else {
-        cursos.push(cursoData);
-    }
-
-    localStorage.setItem('grimorio_cursos', JSON.stringify(cursos));
-
-    inputs.forEach(input => input.value = '');
-    select.selectedIndex = 0;
-
-    carregarCursos();
-    mudarSecao('cursos');
-}
-
-function carregarCursos() {
-    const cursos = JSON.parse(localStorage.getItem('grimorio_cursos')) || [];
-    const containerLista = document.getElementById('lista-cursos');
-
-    if (!containerLista) return;
-
-    if (cursos.length === 0) {
-        containerLista.innerHTML = `
-            <div class="post-card">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem;">
-                    <h2 class="post-titulo" style="margin: 0; font-size: 1.5rem;">Desenvolvimento Web & Python</h2>
-                    <span class="badge-status status-andamento">Em Andamento</span>
-                </div>
-                <div class="post-meta" style="margin-bottom: 1rem;">Lógica, Automações & Projetos Práticos</div>
-                <p>Estudos focados na construção de aplicações web, lógica de programação backend, terminal Linux e projetos independentes.</p>
-            </div>
-        `;
-    } else {
-        containerLista.innerHTML = '';
-        cursos.forEach((curso, index) => {
-            let statusClass = 'status-andamento';
-            let statusTexto = 'Em Andamento';
-
-            if (curso.status === 'concluido') {
-                statusClass = 'status-concluido';
-                statusTexto = 'Concluído';
-            } else if (curso.status === 'pausado') {
-                statusClass = 'status-desejado';
-                statusTexto = 'Pausado';
-            }
-
-            containerLista.innerHTML += `
-                <div class="post-card">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin-bottom: 0.5rem;">
-                        <h2 class="post-titulo" style="margin: 0; font-size: 1.5rem;">${curso.titulo}</h2>
-                        <span class="badge-status ${statusClass}">${statusTexto}</span>
-                    </div>
-                    <div class="post-meta" style="margin-bottom: 1rem;">${curso.instituicao}</div>
-                    <p>${curso.descricao}</p>
-                    <div style="display: flex; gap: 0.5rem; margin-top: 1rem;">
-                        <button class="btn-ler" style="margin-top: 0;" onclick="editarCurso(${index})">✏️ Editar</button>
-                        <button class="btn-ler" style="margin-top: 0; border-color: rgba(229, 115, 115, 0.5); color: #e57373;" onclick="excluirCurso(${index})">🗑️ Excluir</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-}
-
-function editarCurso(index) {
-    const cursos = JSON.parse(localStorage.getItem('grimorio_cursos')) || [];
-    const curso = cursos[index];
-
-    if (!curso) return;
-
-    cursoEditandoIndex = index;
-
-    const container = document.getElementById('novo-curso');
-    const inputs = container.querySelectorAll('input');
-    const select = container.querySelector('select');
-
-    inputs[0].value = curso.titulo;
-    inputs[1].value = curso.instituicao;
-    select.value = curso.status;
-    inputs[2].value = curso.descricao;
-
-    mudarSecao('novo-curso');
-}
-
-function excluirCurso(index) {
-    const cursos = JSON.parse(localStorage.getItem('grimorio_cursos')) || [];
-    if (confirm(`Remover "${cursos[index].titulo}" da lista de cursos?`)) {
-        cursos.splice(index, 1);
-        localStorage.setItem('grimorio_cursos', JSON.stringify(cursos));
-        carregarCursos();
-    }
-}
-
-// 8. MÓDULO DA WISHLIST
-function salvarWishlist() {
-    const container = document.getElementById('novo-item-wishlist');
-    const inputs = container.querySelectorAll('input');
-    const select = container.querySelector('select');
-
-    const nome = inputs[0].value.trim();
-    const categoria = inputs[1].value.trim();
-    const linkFoto = inputs[2].value.trim();
-    const linkCompra = inputs[3].value.trim();
-    const status = select.value;
-
-    if (!nome) {
-        alert('Por favor, preencha pelo menos o nome do item.');
-        return;
-    }
-
-    const itemWishlist = {
-        nome: nome,
-        categoria: categoria || 'Geral',
-        linkFoto: linkFoto || '',
-        linkCompra: linkCompra || '#',
-        status: status
-    };
-
-    let wishlist = JSON.parse(localStorage.getItem('grimorio_wishlist')) || [];
-
-    if (wishlistEditandoIndex !== null) {
-        wishlist[wishlistEditandoIndex] = itemWishlist;
-        wishlistEditandoIndex = null;
-    } else {
-        wishlist.push(itemWishlist);
-    }
-
-    localStorage.setItem('grimorio_wishlist', JSON.stringify(wishlist));
-
-    inputs.forEach(input => input.value = '');
-    select.selectedIndex = 0;
-
-    carregarWishlist();
-    mudarSecao('wishlist');
-}
-
-function carregarWishlist() {
-    const wishlist = JSON.parse(localStorage.getItem('grimorio_wishlist')) || [];
-    const containerGrid = document.querySelector('#wishlist div[style*="display: grid"]');
-
-    if (!containerGrid) return;
-
-    if (wishlist.length === 0) {
-        containerGrid.innerHTML = `
-            <div class="post-card" style="margin-bottom: 0; padding: 1.5rem; text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
-                <div>
-                    <div style="width: 100%; height: 160px; background: rgba(34, 22, 43, 0.8); border: 1px dashed var(--dourado); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-detalhe); color: var(--dourado); margin-bottom: 1rem; border-radius: 4px;">
-                        [ Foto do Item ]
-                    </div>
-                    <h3 style="font-family: var(--fonte-titulo); color: var(--dourado); margin: 0 0 0.5rem 0; font-size: 1.2rem; font-weight: normal;">Bíblia Clássica do Tarot</h3>
-                    <div class="post-meta" style="font-size: 0.8rem; margin-bottom: 0.8rem;">Livro Físico · Referência</div>
-                </div>
-                <div>
-                    <span class="badge-status status-desejado" style="display: inline-block; margin-bottom: 1rem;">Desejado</span>
-                    <a href="https://amazon.com.br" target="_blank" style="text-decoration: none; display: block;">
-                        <button class="btn-ler" style="width: 100%; margin-top: 0;">🛒 Onde Comprar ↗</button>
-                    </a>
-                </div>
-            </div>
-        `;
-    } else {
-        containerGrid.innerHTML = '';
-        wishlist.forEach((item, index) => {
-            const fotoHtml = item.linkFoto 
-                ? `<img src="${item.linkFoto}" alt="${item.nome}" style="width: 100%; height: 160px; object-fit: cover; border-radius: 4px; border: 1px solid var(--dourado); margin-bottom: 1rem;">`
-                : `<div style="width: 100%; height: 160px; background: rgba(34, 22, 43, 0.8); border: 1px dashed var(--dourado); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-detalhe); color: var(--dourado); margin-bottom: 1rem; border-radius: 4px;">[ Foto do Item ]</div>`;
-
-            const statusClass = item.status === 'adquirido' ? 'status-concluido' : 'status-desejado';
-            const statusTexto = item.status === 'adquirido' ? 'Adquirido' : 'Desejado';
-
-            const botaoCompra = item.linkCompra && item.linkCompra !== '#'
-                ? `<a href="${item.linkCompra}" target="_blank" style="text-decoration: none; display: block;">
-                        <button class="btn-ler" style="width: 100%; margin-top: 0;">🛒 Onde Comprar ↗</button>
-                   </a>`
-                : `<button class="btn-ler" style="width: 100%; margin-top: 0; opacity: 0.5; cursor: not-allowed;" disabled>Sem Link</button>`;
-
-            containerGrid.innerHTML += `
-                <div class="post-card" style="margin-bottom: 0; padding: 1.5rem; text-align: center; display: flex; flex-direction: column; justify-content: space-between;">
-                    <div>
-                        ${fotoHtml}
-                        <h3 style="font-family: var(--fonte-titulo); color: var(--dourado); margin: 0 0 0.5rem 0; font-size: 1.2rem; font-weight: normal;">${item.nome}</h3>
-                        <div class="post-meta" style="font-size: 0.8rem; margin-bottom: 0.8rem;">${item.categoria}</div>
-                    </div>
-                    <div>
-                        <span class="badge-status ${statusClass}" style="display: inline-block; margin-bottom: 1rem;">${statusTexto}</span>
-                        ${botaoCompra}
-                        <div style="margin-top: 0.8rem; display: flex; gap: 0.5rem; justify-content: center;">
-                            <button class="btn-ler" style="margin-top: 0; font-size: 0.8rem; padding: 0.2rem 0.6rem; border-color: rgba(229, 115, 115, 0.5); color: #e57373;" onclick="excluirWishlist(${index})">🗑️ Remover</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-}
-
-function excluirWishlist(index) {
-    const wishlist = JSON.parse(localStorage.getItem('grimorio_wishlist')) || [];
-    if (confirm(`Remover "${wishlist[index].nome}" da sua Wishlist?`)) {
-        wishlist.splice(index, 1);
-        localStorage.setItem('grimorio_wishlist', JSON.stringify(wishlist));
-        carregarWishlist();
-    }
-}
-
-// 9. MÓDULO DE BACKUP (EXPORTAR E IMPORTAR JSON)
+// 9. MÓDULO DE BACKUP
 function exportarBackup() {
     const dadosBackup = {
         grimorio_posts: JSON.parse(localStorage.getItem('grimorio_posts')) || [],
@@ -728,6 +796,7 @@ function importarBackup(event) {
                 carregarWishlist();
                 carregarCursos();
                 carregarLivrosNuvem();
+                atualizarSubmenuFeiticos();
 
                 alert("Backup restaurado com sucesso! ✦");
             }
