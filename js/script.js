@@ -3,6 +3,9 @@ let postEditandoIndex = null;
 let wishlistEditandoIndex = null;
 let cursoEditandoIndex = null;
 let livroEditandoIndex = null;
+let escritoEditandoIndex = null;
+let obraAtualIndice = null;
+
 let categoriaAtualBiblioteca = 'Todos';
 let termoBuscaBiblioteca = '';
 let filtroFeedAtual = { tipo: 'todos', valor: '' };
@@ -29,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     carregarWishlist();
     carregarCursos();
     carregarLivrosNuvem();
+    carregarEscritos();
     atualizarSubmenuFeiticos();
 
     const btnPublicarPost = document.querySelector('#editor-post .botoes-acao button:last-child');
@@ -37,7 +41,7 @@ document.addEventListener('DOMContentLoaded', () => {
     configurarToolbarEditor();
 });
 
-// 3. FOTO DE PERFIL (UPLOAD VIA CANVAS + LOCALSTORAGE)
+// 3. FOTO DE PERFIL (UPLOAD DIRETO DO PC + COMPACTAÇÃO VIA CANVAS)
 function carregarPerfil() {
     const fotoSalva = localStorage.getItem('grimorio_foto_perfil');
     const containerFoto = document.getElementById('avatar-perfil');
@@ -77,14 +81,14 @@ function uploadFotoPerfilComputador(event) {
             localStorage.setItem('grimorio_foto_perfil', imagemOtimizada);
             
             carregarPerfil();
-            alert("Foto salva com sucesso neste dispositivo! ✦");
+            alert("Foto salva com sucesso! ✦");
         };
     };
     
     reader.readAsDataURL(file);
 }
 
-// 4. EDITOR DE TEXTO RICO
+// 4. EDITOR DE TEXTO RICO (FEED)
 function configurarToolbarEditor() {
     const botoes = document.querySelectorAll('#editor-post .editor-btn');
     if (botoes.length >= 5) {
@@ -109,7 +113,7 @@ function inserirDivisor() {
     if (area) area.focus();
 }
 
-// 5. MÓDULO DE POSTS & NAVEGAÇÃO DE CATEGORIAS / TAGS CLICÁVEIS
+// 5. MÓDULO DE POSTS (FEED & CATEGORIAS/TAGS)
 function salvarPost() {
     const titulo = document.getElementById('post-titulo-input').value.trim();
     const selectCat = document.getElementById('post-categoria-select');
@@ -321,7 +325,202 @@ function excluirPost(index) {
     }
 }
 
-// 6. MÓDULO DE CURSOS
+// 6. MÓDULO MEUS ESCRITOS (CRIAR, EDITAR, EXCLUIR E AGROUPAR OBRAS)
+function carregarEscritos() {
+    const escritos = JSON.parse(localStorage.getItem('grimorio_escritos')) || [];
+    const containerObras = document.getElementById('lista-obras-escritos');
+
+    if (!containerObras) return;
+
+    if (escritos.length === 0) {
+        containerObras.innerHTML = `
+            <div class="post-card" style="text-align: center; padding: 2rem;">
+                <p style="color: var(--texto-secundario);">Nenhum projeto escrito ainda. Clique em "Nova Obra / Capítulo" para começar!</p>
+            </div>
+        `;
+        return;
+    }
+
+    const obrasAgrupadas = {};
+    escritos.forEach((item, index) => {
+        if (!obrasAgrupadas[item.obra]) {
+            obrasAgrupadas[item.obra] = { sinopse: item.sinopse, capitulos: [] };
+        }
+        obrasAgrupadas[item.obra].capitulos.push({ ...item, indexReal: index });
+    });
+
+    containerObras.innerHTML = '';
+    Object.keys(obrasAgrupadas).forEach(nomeObra => {
+        const obra = obrasAgrupadas[nomeObra];
+        const qtdCapitulos = obra.capitulos.length;
+
+        containerObras.innerHTML += `
+            <div class="post-card">
+                <div class="post-meta">${obra.sinopse || 'Projeto Literário'} ✦ ${qtdCapitulos} capítulo(s)</div>
+                <h2 class="post-titulo">${nomeObra}</h2>
+                <button class="btn-ler" onclick="verIndiceObra('${nomeObra.replace(/'/g, "\\'")}')">Ver Capítulos →</button>
+            </div>
+        `;
+    });
+}
+
+function abrirEditorObra() {
+    escritoEditandoIndex = null;
+    document.getElementById('escrito-obra-input').value = '';
+    document.getElementById('escrito-capitulo-input').value = '';
+    document.getElementById('escrito-sinopse-input').value = '';
+    document.getElementById('escrito-conteudo-area').innerHTML = '';
+    document.getElementById('titulo-form-escrito').innerText = 'Escrever Capítulo / Obra';
+    mudarSecao('editor-escrito');
+}
+
+function formatarTextoEscrito(comando, valor = null) {
+    document.execCommand(comando, false, valor);
+    document.getElementById('escrito-conteudo-area').focus();
+}
+
+function salvarEscrito() {
+    const obra = document.getElementById('escrito-obra-input').value.trim();
+    const capitulo = document.getElementById('escrito-capitulo-input').value.trim();
+    const sinopse = document.getElementById('escrito-sinopse-input').value.trim();
+    const conteudoArea = document.getElementById('escrito-conteudo-area');
+    const conteudo = conteudoArea.innerHTML.trim();
+
+    if (!obra || !capitulo || conteudoArea.innerText.trim() === '') {
+        alert('Por favor, preencha a obra, o título do capítulo e o texto.');
+        return;
+    }
+
+    const hoje = new Date();
+    const dataFormatada = hoje.toLocaleDateString('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const escritoData = {
+        obra: obra,
+        capitulo: capitulo,
+        sinopse: sinopse || 'Projeto Literário',
+        conteudo: conteudo,
+        data: dataFormatada
+    };
+
+    let escritos = JSON.parse(localStorage.getItem('grimorio_escritos')) || [];
+
+    if (escritoEditandoIndex !== null) {
+        escritos[escritoEditandoIndex] = escritoData;
+        escritoEditandoIndex = null;
+    } else {
+        escritos.push(escritoData);
+    }
+
+    localStorage.setItem('grimorio_escritos', JSON.stringify(escritos));
+    carregarEscritos();
+
+    if (obraAtualIndice === obra) {
+        verIndiceObra(obra);
+    } else {
+        mudarSecao('meus-escritos');
+    }
+}
+
+function verIndiceObra(nomeObra) {
+    obraAtualIndice = nomeObra;
+    const escritos = JSON.parse(localStorage.getItem('grimorio_escritos')) || [];
+    const capitulosObra = escritos.filter(e => e.obra === nomeObra);
+
+    const cabecalho = document.getElementById('cabecalho-obra-indice');
+    const lista = document.getElementById('lista-capitulos-obra');
+
+    if (capitulosObra.length > 0 && cabecalho) {
+        cabecalho.innerHTML = `
+            <div class="livro-capa">
+                <div class="post-meta">Índice da Obra</div>
+                <h1 style="margin-bottom: 1rem;">${nomeObra}</h1>
+                <div class="livro-sinopse">"${capitulosObra[0].sinopse}"</div>
+            </div>
+        `;
+    }
+
+    if (lista) {
+        lista.innerHTML = '';
+        capitulosObra.forEach((item) => {
+            const indexReal = escritos.indexOf(item);
+            lista.innerHTML += `
+                <li>
+                    <div>
+                        <div class="capitulo-titulo">${item.capitulo}</div>
+                        <div class="capitulo-data">${item.data}</div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                        <button class="btn-ler" style="margin: 0; padding: 0.3rem 0.8rem;" onclick="lerCapituloEscrito(${indexReal})">Ler</button>
+                        <button class="btn-ler" style="margin: 0; padding: 0.3rem 0.8rem;" onclick="editarEscrito(${indexReal})">✏️ Editar</button>
+                        <button class="btn-ler" style="margin: 0; padding: 0.3rem 0.8rem; border-color: rgba(229, 115, 115, 0.5); color: #e57373;" onclick="excluirEscrito(${indexReal})">🗑️ Excluir</button>
+                    </div>
+                </li>
+            `;
+        });
+    }
+
+    mudarSecao('indice-livro');
+}
+
+function lerCapituloEscrito(index) {
+    const escritos = JSON.parse(localStorage.getItem('grimorio_escritos')) || [];
+    const item = escritos[index];
+
+    if (!item) return;
+
+    const container = document.getElementById('conteudo-leitura-capitulo');
+    if (container) {
+        container.innerHTML = `
+            <div class="post-meta" style="text-align: center;">${item.obra}</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">${item.capitulo}</h1>
+            <div>${item.conteudo}</div>
+            <div class="divisor">❖ ─── ✦ ─── ❖</div>
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="btn-ler" onclick="verIndiceObra('${item.obra.replace(/'/g, "\\'")}')">← Voltar para o Índice</button>
+            </div>
+        `;
+    }
+
+    mudarSecao('leitura-capitulo');
+}
+
+function editarEscrito(index) {
+    const escritos = JSON.parse(localStorage.getItem('grimorio_escritos')) || [];
+    const item = escritos[index];
+
+    if (!item) return;
+
+    escritoEditandoIndex = index;
+
+    document.getElementById('escrito-obra-input').value = item.obra;
+    document.getElementById('escrito-capitulo-input').value = item.capitulo;
+    document.getElementById('escrito-sinopse-input').value = item.sinopse;
+    document.getElementById('escrito-conteudo-area').innerHTML = item.conteudo;
+    document.getElementById('titulo-form-escrito').innerText = 'Editar Capítulo';
+
+    mudarSecao('editor-escrito');
+}
+
+function excluirEscrito(index) {
+    const escritos = JSON.parse(localStorage.getItem('grimorio_escritos')) || [];
+    const item = escritos[index];
+
+    if (item && confirm(`Tem certeza que deseja excluir "${item.capitulo}"?`)) {
+        const obraNome = item.obra;
+        escritos.splice(index, 1);
+        localStorage.setItem('grimorio_escritos', JSON.stringify(escritos));
+        carregarEscritos();
+
+        const sobrantes = escritos.filter(e => e.obra === obraNome);
+        if (sobrantes.length > 0) {
+            verIndiceObra(obraNome);
+        } else {
+            mudarSecao('meus-escritos');
+        }
+    }
+}
+
+// 7. MÓDULO DE CURSOS
 function toggleCampoCertificado(status) {
     const box = document.getElementById('box-upload-certificado');
     if (box) {
@@ -467,7 +666,7 @@ function excluirCurso(index) {
     }
 }
 
-// 7. MÓDULO DA WISHLIST
+// 8. MÓDULO DA WISHLIST
 function salvarWishlist() {
     const nome = document.getElementById('wishlist-nome-input').value.trim();
     const categoria = document.getElementById('wishlist-categoria-input').value.trim();
@@ -600,7 +799,7 @@ function excluirWishlist(index) {
     }
 }
 
-// 8. MÓDULO DA BIBLIOTECA VIRTUAL
+// 9. MÓDULO DA BIBLIOTECA VIRTUAL
 function filtrarBiblioteca(categoriaOuTag) {
     categoriaAtualBiblioteca = categoriaOuTag;
 
@@ -758,13 +957,14 @@ function excluirLivroNuvem(index) {
     }
 }
 
-// 9. MÓDULO DE BACKUP
+// 10. MÓDULO DE BACKUP E RESTAURAÇÃO
 function exportarBackup() {
     const dadosBackup = {
         grimorio_posts: JSON.parse(localStorage.getItem('grimorio_posts')) || [],
         grimorio_livros_nuvem: JSON.parse(localStorage.getItem('grimorio_livros_nuvem')) || [],
         grimorio_cursos: JSON.parse(localStorage.getItem('grimorio_cursos')) || [],
         grimorio_wishlist: JSON.parse(localStorage.getItem('grimorio_wishlist')) || [],
+        grimorio_escritos: JSON.parse(localStorage.getItem('grimorio_escritos')) || [],
         grimorio_foto_perfil: localStorage.getItem('grimorio_foto_perfil') || ''
     };
 
@@ -793,6 +993,7 @@ function importarBackup(event) {
                 if (dados.grimorio_livros_nuvem) localStorage.setItem('grimorio_livros_nuvem', JSON.stringify(dados.grimorio_livros_nuvem));
                 if (dados.grimorio_cursos) localStorage.setItem('grimorio_cursos', JSON.stringify(dados.grimorio_cursos));
                 if (dados.grimorio_wishlist) localStorage.setItem('grimorio_wishlist', JSON.stringify(dados.grimorio_wishlist));
+                if (dados.grimorio_escritos) localStorage.setItem('grimorio_escritos', JSON.stringify(dados.grimorio_escritos));
                 if (dados.grimorio_foto_perfil !== undefined) localStorage.setItem('grimorio_foto_perfil', dados.grimorio_foto_perfil);
 
                 carregarPerfil();
@@ -800,6 +1001,7 @@ function importarBackup(event) {
                 carregarWishlist();
                 carregarCursos();
                 carregarLivrosNuvem();
+                carregarEscritos();
                 atualizarSubmenuFeiticos();
 
                 alert("Backup restaurado com sucesso! ✦");
