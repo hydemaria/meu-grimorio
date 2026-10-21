@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     configurarToolbarEditor();
 });
 
-// 3. FOTO DE PERFIL (UPLOAD DIRETO DO PC + COMPACTAÇÃO VIA CANVAS)
+// 3. FOTO DE PERFIL (UPLOAD VIA CANVAS + LOCALSTORAGE)
 function carregarPerfil() {
     const fotoSalva = localStorage.getItem('grimorio_foto_perfil');
     const containerFoto = document.getElementById('avatar-perfil');
@@ -77,6 +77,7 @@ function uploadFotoPerfilComputador(event) {
             localStorage.setItem('grimorio_foto_perfil', imagemOtimizada);
             
             carregarPerfil();
+            alert("Foto salva com sucesso neste dispositivo! ✦");
         };
     };
     
@@ -108,7 +109,7 @@ function inserirDivisor() {
     if (area) area.focus();
 }
 
-// 5. MÓDULO DE POSTS & NAVEGAÇÃO DE CATEGORIAS / TAGS
+// 5. MÓDULO DE POSTS & NAVEGAÇÃO DE CATEGORIAS / TAGS CLICÁVEIS
 function salvarPost() {
     const titulo = document.getElementById('post-titulo-input').value.trim();
     const selectCat = document.getElementById('post-categoria-select');
@@ -167,14 +168,14 @@ function carregarPosts() {
 
     if (filtroFeedAtual.tipo === 'categoria') {
         postsFiltrados = posts.filter(p => p.categoria.toLowerCase() === filtroFeedAtual.valor.toLowerCase());
-        tituloFiltro.innerText = `Mostrando categoria: ${filtroFeedAtual.valor}`;
+        if (tituloFiltro) tituloFiltro.innerText = `Mostrando categoria: ${filtroFeedAtual.valor}`;
         if (btnLimpar) btnLimpar.style.display = 'inline-block';
     } else if (filtroFeedAtual.tipo === 'tag') {
         postsFiltrados = posts.filter(p => p.tags && p.tags.toLowerCase().includes(filtroFeedAtual.valor.toLowerCase()));
-        tituloFiltro.innerText = `Mostrando tag: #${filtroFeedAtual.valor}`;
+        if (tituloFiltro) tituloFiltro.innerText = `Mostrando tag: #${filtroFeedAtual.valor}`;
         if (btnLimpar) btnLimpar.style.display = 'inline-block';
     } else {
-        tituloFiltro.innerText = 'Mostrando: Todos os registros';
+        if (tituloFiltro) tituloFiltro.innerText = 'Mostrando: Todos os registros';
         if (btnLimpar) btnLimpar.style.display = 'none';
     }
 
@@ -195,14 +196,14 @@ function carregarPosts() {
 
         const tagsArray = post.tags ? post.tags.split(',').map(t => t.trim()) : [];
         const tagsHtml = tagsArray.map(tag => 
-            `<span onclick="filtrarFeedPorTag('${tag.replace(/'/g, "\\'")}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado);">#${tag}</span>`
+            `<span onclick="filtrarFeedPorTag('${tag.replace(/'/g, "\\'")}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado); font-weight: bold;">#${tag}</span>`
         ).join(', ');
 
         containerFeed.innerHTML += `
             <div class="post-card">
                 <div class="post-meta">
                     ${post.data} ✦ 
-                    <span onclick="filtrarFeedPorCategoria('${post.categoria}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado);">${post.categoria}</span> 
+                    <span onclick="filtrarFeedPorCategoria('${post.categoria}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado); font-weight: bold;">${post.categoria}</span> 
                     ✦ ${tagsHtml}
                 </div>
                 <h2 class="post-titulo">${post.titulo}</h2>
@@ -244,7 +245,10 @@ function atualizarSubmenuFeiticos() {
 
     postsFeiticos.forEach(p => {
         if (p.tags) {
-            p.tags.split(',').forEach(t => tagsSet.add(t.trim()));
+            p.tags.split(',').forEach(t => {
+                const tagLimpa = t.trim();
+                if (tagLimpa) tagsSet.add(tagLimpa);
+            });
         }
     });
 
@@ -253,7 +257,7 @@ function atualizarSubmenuFeiticos() {
     } else {
         containerSubmenu.innerHTML = '';
         tagsSet.forEach(tag => {
-            containerSubmenu.innerHTML += `<a onclick="filtrarFeedPorTag('${tag.replace(/'/g, "\\'")}')">✦ ${tag}</a>`;
+            containerSubmenu.innerHTML += `<a onclick="filtrarFeedPorTag('${tag.replace(/'/g, "\\'")}')" style="cursor: pointer;">✦ ${tag}</a>`;
         });
     }
 }
@@ -266,14 +270,14 @@ function lerPost(index) {
 
     const tagsArray = post.tags ? post.tags.split(',').map(t => t.trim()) : [];
     const tagsHtml = tagsArray.map(tag => 
-        `<span onclick="filtrarFeedPorTag('${tag.replace(/'/g, "\\'")}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado);">#${tag}</span>`
+        `<span onclick="filtrarFeedPorTag('${tag.replace(/'/g, "\\'")}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado); font-weight: bold;">#${tag}</span>`
     ).join(', ');
 
     const containerLeitura = document.getElementById('leitura-post');
     containerLeitura.innerHTML = `
         <div class="post-meta" style="text-align: center;">
             ${post.data} ✦ 
-            <span onclick="filtrarFeedPorCategoria('${post.categoria}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado);">${post.categoria}</span>
+            <span onclick="filtrarFeedPorCategoria('${post.categoria}')" style="cursor: pointer; text-decoration: underline; color: var(--dourado); font-weight: bold;">${post.categoria}</span>
             ✦ ${tagsHtml}
         </div>
         <h1 style="text-align: center; margin-bottom: 2rem;">${post.titulo}</h1>
