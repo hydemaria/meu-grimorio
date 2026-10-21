@@ -1,4 +1,20 @@
-// VARIÁVEIS DE CONTROLE DE EDIÇÃO E NAVEGAÇÃO
+// INICIALIZAÇÃO DO FIREBASE COM AS TUAS CREDENCIAIS
+const firebaseConfig = {
+  apiKey: "AIzaSyAR2ZUD6jW4ls8_zp-g_16EAM034SXrF-8",
+  authDomain: "meu-grimorio.firebaseapp.com",
+  databaseURL: "https://meu-grimorio-default-rtdb.firebaseio.com",
+  projectId: "meu-grimorio",
+  storageBucket: "meu-grimorio.firebasestorage.app",
+  messagingSenderId: "292124663832",
+  appId: "1:292124663832:web:c40746160436c5bed7e36d"
+};
+
+// Inicializa o Firebase
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+const storage = firebase.storage();
+
+// VARIÁVEIS DE CONTROLO DE EDIÇÃO E NAVEGAÇÃO
 let postEditandoIndex = null;
 let wishlistEditandoIndex = null;
 let cursoEditandoIndex = null;
@@ -25,8 +41,11 @@ function mudarSecao(idSecao) {
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
-// 2. INICIALIZAÇÃO E EVENTOS
+// 2. INICIALIZAÇÃO E SINCRONIZAÇÃO COM A NUVEM
 document.addEventListener('DOMContentLoaded', () => {
+    // Sincroniza em tempo real com o Firebase (se existir dados lá, atualiza localmente)
+    sincronizarComNuvem();
+
     carregarPerfil();
     carregarPosts();
     carregarWishlist();
@@ -40,6 +59,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     configurarToolbarEditor();
 });
+
+function sincronizarComNuvem() {
+    db.ref('grimorio').on('value', (snapshot) => {
+        const dados = snapshot.val();
+        if (dados) {
+            if (dados.posts) localStorage.setItem('grimorio_posts', JSON.stringify(dados.posts));
+            if (dados.livros_nuvem) localStorage.setItem('grimorio_livros_nuvem', JSON.stringify(dados.livros_nuvem));
+            if (dados.cursos) localStorage.setItem('grimorio_cursos', JSON.stringify(dados.cursos));
+            if (dados.wishlist) localStorage.setItem('grimorio_wishlist', JSON.stringify(dados.wishlist));
+            if (dados.escritos) localStorage.setItem('grimorio_escritos', JSON.stringify(dados.escritos));
+            if (dados.foto_perfil) localStorage.setItem('grimorio_foto_perfil', dados.foto_perfil);
+
+            carregarPerfil();
+            carregarPosts();
+            carregarWishlist();
+            carregarCursos();
+            carregarLivrosNuvem();
+            carregarEscritos();
+            atualizarSubmenuFeiticos();
+        }
+    });
+}
+
+function salvarNaNuvem(chave, dados) {
+    localStorage.setItem(`grimorio_${chave}`, typeof dados === 'string' ? dados : JSON.stringify(dados));
+    db.ref(`grimorio/${chave}`).set(dados);
+}
 
 // 3. FOTO DE PERFIL (UPLOAD DIRETO DO PC + COMPACTAÇÃO VIA CANVAS)
 function carregarPerfil() {
@@ -78,10 +124,10 @@ function uploadFotoPerfilComputador(event) {
             ctx.drawImage(img, startX, startY, minDim, minDim, 0, 0, maxLado, maxLado);
 
             const imagemOtimizada = canvas.toDataURL('image/jpeg', 0.85);
-            localStorage.setItem('grimorio_foto_perfil', imagemOtimizada);
+            salvarNaNuvem('foto_perfil', imagemOtimizada);
             
             carregarPerfil();
-            alert("Foto salva com sucesso! ✦");
+            alert("Foto salva e sincronizada na nuvem com sucesso! ✦");
         };
     };
     
@@ -148,7 +194,7 @@ function salvarPost() {
         posts.unshift(postData);
     }
 
-    localStorage.setItem('grimorio_posts', JSON.stringify(posts));
+    salvarNaNuvem('posts', posts);
 
     document.getElementById('post-titulo-input').value = '';
     selectCat.selectedIndex = 0;
@@ -319,13 +365,13 @@ function excluirPost(index) {
     const posts = JSON.parse(localStorage.getItem('grimorio_posts')) || [];
     if (confirm(`Tem certeza que deseja remover o registro "${posts[index].titulo}"?`)) {
         posts.splice(index, 1);
-        localStorage.setItem('grimorio_posts', JSON.stringify(posts));
+        salvarNaNuvem('posts', posts);
         carregarPosts();
         atualizarSubmenuFeiticos();
     }
 }
 
-// 6. MÓDULO MEUS ESCRITOS (CRIAR, EDITAR, EXCLUIR E AGROUPAR OBRAS)
+// 6. MÓDULO MEUS ESCRITOS
 function carregarEscritos() {
     const escritos = JSON.parse(localStorage.getItem('grimorio_escritos')) || [];
     const containerObras = document.getElementById('lista-obras-escritos');
@@ -411,7 +457,7 @@ function salvarEscrito() {
         escritos.push(escritoData);
     }
 
-    localStorage.setItem('grimorio_escritos', JSON.stringify(escritos));
+    salvarNaNuvem('escritos', escritos);
     carregarEscritos();
 
     if (obraAtualIndice === obra) {
@@ -508,7 +554,7 @@ function excluirEscrito(index) {
     if (item && confirm(`Tem certeza que deseja excluir "${item.capitulo}"?`)) {
         const obraNome = item.obra;
         escritos.splice(index, 1);
-        localStorage.setItem('grimorio_escritos', JSON.stringify(escritos));
+        salvarNaNuvem('escritos', escritos);
         carregarEscritos();
 
         const sobrantes = escritos.filter(e => e.obra === obraNome);
@@ -520,7 +566,222 @@ function excluirEscrito(index) {
     }
 }
 
-// 7. MÓDULO DE CURSOS
+// 7. UPLOAD MÚLTIPLO DE PDFS E BIBLIOTECA VIRTUAL
+function atualizarNomeArquivosSelecionados(input) {
+    const status = document.getElementById('status-arquivos-selecionados');
+    if (input.files && input.files.length > 0) {
+        status.innerText = `${input.files.length} arquivo(s) selecionado(s)`;
+    } else {
+        status.innerText = 'Nenhum arquivo selecionado';
+    }
+}
+
+async function fazerUploadMultiplosPDFs() {
+    const input = document.getElementById('pdf-files-multiple');
+    const status = document.getElementById('status-arquivos-selecionados');
+
+    if (!input.files || input.files.length === 0) {
+        alert('Por favor, selecione ao menos um arquivo PDF do seu computador.');
+        return;
+    }
+
+    const arquivos = Array.from(input.files);
+    let acervo = JSON.parse(localStorage.getItem('grimorio_livros_nuvem')) || [];
+
+    for (let i = 0; i < arquivos.length; i++) {
+        const file = arquivos[i];
+        status.innerText = `Enviando arquivo ${i + 1} de ${arquivos.length}: ${file.name}...`;
+
+        try {
+            const storageRef = storage.ref(`livros_pdf/${Date.now()}_${file.name}`);
+            const snapshot = await storageRef.put(file);
+            const downloadURL = await snapshot.ref.getDownloadURL();
+
+            const tituloLimpo = file.name.replace(/\.[^/.]+$/, "");
+
+            const novoLivro = {
+                titulo: tituloLimpo,
+                link: downloadURL,
+                categoria: 'Geral',
+                tags: ['upload-pc', 'pdf']
+            };
+
+            acervo.push(novoLivro);
+        } catch (erro) {
+            console.error('Erro ao enviar:', file.name, erro);
+            alert(`Erro ao subir o arquivo ${file.name}`);
+        }
+    }
+
+    salvarNaNuvem('livros_nuvem', acervo);
+
+    status.innerText = 'Todos os uploads foram concluídos com sucesso! ✦';
+    input.value = '';
+    
+    carregarLivrosNuvem();
+    setTimeout(() => {
+        mudarSecao('biblioteca');
+    }, 1500);
+}
+
+function filtrarBiblioteca(categoriaOuTag) {
+    categoriaAtualBiblioteca = categoriaOuTag;
+
+    const links = document.querySelectorAll('.cat-pdf-link');
+    links.forEach(link => {
+        if (link.innerText.includes(categoriaOuTag) || (categoriaOuTag === 'Todos' && link.innerText.includes('Todos'))) {
+            link.style.color = 'var(--dourado)';
+        } else {
+            link.style.color = 'var(--texto-principal)';
+        }
+    });
+
+    const tituloCat = document.getElementById('categoria-atual-titulo');
+    if (tituloCat) {
+        tituloCat.innerText = categoriaOuTag === 'Todos' ? 'Mostrando: Todos os PDFs' : `Mostrando: ${categoriaOuTag}`;
+    }
+
+    carregarLivrosNuvem();
+}
+
+function filtrarBibliotecaPorBusca(termo) {
+    termoBuscaBiblioteca = termo.toLowerCase().trim();
+    carregarLivrosNuvem();
+}
+
+function salvarLivroNuvem() {
+    const titleInput = document.getElementById('pdf-title-input');
+    const linkInput = document.getElementById('pdf-link-input');
+    const categorySelect = document.getElementById('pdf-category-select');
+    const tagInput = document.getElementById('pdf-tag-input');
+
+    const titulo = titleInput.value.trim();
+    const link = linkInput.value.trim();
+    const categoria = categorySelect ? categorySelect.value : 'Geral';
+    const rawTags = tagInput.value.trim();
+
+    if (!titulo || !link) {
+        alert('Por favor, preencha o título e o link do arquivo no Drive.');
+        return;
+    }
+
+    const arrayTags = rawTags ? rawTags.split(',').map(t => t.trim()).filter(t => t !== '') : [];
+
+    const livro = {
+        titulo: titulo,
+        link: link,
+        categoria: categoria,
+        tags: arrayTags
+    };
+
+    let acervo = JSON.parse(localStorage.getItem('grimorio_livros_nuvem')) || [];
+
+    if (livroEditandoIndex !== null) {
+        acervo[livroEditandoIndex] = livro;
+        livroEditandoIndex = null;
+    } else {
+        acervo.push(livro);
+    }
+
+    salvarNaNuvem('livros_nuvem', acervo);
+
+    titleInput.value = '';
+    linkInput.value = '';
+    tagInput.value = '';
+    if (categorySelect) categorySelect.selectedIndex = 0;
+
+    carregarLivrosNuvem();
+    mudarSecao('biblioteca');
+}
+
+function carregarLivrosNuvem() {
+    const acervoTotal = JSON.parse(localStorage.getItem('grimorio_livros_nuvem')) || [];
+    const containerLista = document.getElementById('lista-livros-pdfs');
+
+    if (!containerLista) return;
+
+    let acervo = acervoTotal.filter(item => {
+        const ehCategoria = categoriaAtualBiblioteca === 'Todos' || 
+            item.categoria === categoriaAtualBiblioteca || 
+            (item.tags && item.tags.some(t => t.toLowerCase() === categoriaAtualBiblioteca.toLowerCase()));
+
+        const bateuBusca = termoBuscaBiblioteca === '' ||
+            item.titulo.toLowerCase().includes(termoBuscaBiblioteca) ||
+            (item.categoria && item.categoria.toLowerCase().includes(termoBuscaBiblioteca)) ||
+            (item.tags && item.tags.some(t => t.toLowerCase().includes(termoBuscaBiblioteca)));
+
+        return ehCategoria && bateuBusca;
+    });
+
+    if (acervo.length === 0) {
+        containerLista.innerHTML = `
+            <div class="post-card" style="text-align: center; padding: 2rem;">
+                <p style="color: var(--texto-secundario);">Nenhum livro encontrado.</p>
+            </div>
+        `;
+    } else {
+        containerLista.innerHTML = '';
+        acervo.forEach((livro) => {
+            const indexReal = acervoTotal.indexOf(livro);
+
+            let tagsHtml = '';
+            if (livro.tags && livro.tags.length > 0) {
+                tagsHtml = livro.tags.map(tag => 
+                    `<span onclick="filtrarBiblioteca('${tag.replace(/'/g, "\\'")}')" style="border: 1px solid rgba(230, 200, 133, 0.3); padding: 0.15rem 0.5rem; border-radius: 12px; font-size: 0.75rem; color: var(--dourado); cursor: pointer; display: inline-block; margin-right: 0.3rem; margin-top: 0.3rem; background: rgba(34, 22, 43, 0.6);">#${tag}</span>`
+                ).join('');
+            }
+
+            containerLista.innerHTML += `
+                <div class="post-card" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
+                    <div style="flex: 1; min-width: 200px;">
+                        <h2 class="post-titulo" style="font-size: 1.4rem; margin: 0 0 0.3rem 0;">📄 ${livro.titulo}</h2>
+                        <div class="post-meta" style="font-size: 0.85rem; margin: 0 0 0.5rem 0;">${livro.categoria || 'Geral'}</div>
+                        <div>${tagsHtml}</div>
+                    </div>
+                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-self: center;">
+                        <a href="${livro.link}" target="_blank" style="text-decoration: none;">
+                            <button class="btn-ler" style="margin-top: 0;">📖 Abrir PDF ↗</button>
+                        </a>
+                        <button class="btn-ler" style="margin-top: 0;" onclick="editarLivroNuvem(${indexReal})">✏️ Editar</button>
+                        <button class="btn-ler" style="margin-top: 0; border-color: rgba(229, 115, 115, 0.5); color: #e57373;" onclick="excluirLivroNuvem(${indexReal})">🗑️ Excluir</button>
+                    </div>
+                </div>
+            `;
+        });
+    }
+}
+
+function editarLivroNuvem(index) {
+    const acervo = JSON.parse(localStorage.getItem('grimorio_livros_nuvem')) || [];
+    const livro = acervo[index];
+
+    if (!livro) return;
+
+    livroEditandoIndex = index;
+
+    document.getElementById('pdf-title-input').value = livro.titulo;
+    document.getElementById('pdf-link-input').value = livro.link;
+    
+    const catSelect = document.getElementById('pdf-category-select');
+    if (catSelect && livro.categoria) {
+        catSelect.value = livro.categoria;
+    }
+    
+    document.getElementById('pdf-tag-input').value = livro.tags ? livro.tags.join(', ') : '';
+
+    mudarSecao('novo-livro');
+}
+
+function excluirLivroNuvem(index) {
+    const acervo = JSON.parse(localStorage.getItem('grimorio_livros_nuvem')) || [];
+    if (confirm(`Remover "${acervo[index].titulo}" da estante?`)) {
+        acervo.splice(index, 1);
+        salvarNaNuvem('livros_nuvem', acervo);
+        carregarLivrosNuvem();
+    }
+}
+
+// 8. MÓDULO DE CURSOS
 function toggleCampoCertificado(status) {
     const box = document.getElementById('box-upload-certificado');
     if (box) {
@@ -559,7 +820,7 @@ function salvarCurso() {
             cursos.push(cursoData);
         }
 
-        localStorage.setItem('grimorio_cursos', JSON.stringify(cursos));
+        salvarNaNuvem('cursos', cursos);
 
         document.getElementById('curso-titulo-input').value = '';
         document.getElementById('curso-instituicao-input').value = '';
@@ -661,12 +922,12 @@ function excluirCurso(index) {
     const cursos = JSON.parse(localStorage.getItem('grimorio_cursos')) || [];
     if (confirm(`Remover "${cursos[index].titulo}" da lista de cursos?`)) {
         cursos.splice(index, 1);
-        localStorage.setItem('grimorio_cursos', JSON.stringify(cursos));
+        salvarNaNuvem('cursos', cursos);
         carregarCursos();
     }
 }
 
-// 8. MÓDULO DA WISHLIST
+// 9. MÓDULO DA WISHLIST
 function salvarWishlist() {
     const nome = document.getElementById('wishlist-nome-input').value.trim();
     const categoria = document.getElementById('wishlist-categoria-input').value.trim();
@@ -696,7 +957,7 @@ function salvarWishlist() {
         wishlist.push(itemWishlist);
     }
 
-    localStorage.setItem('grimorio_wishlist', JSON.stringify(wishlist));
+    salvarNaNuvem('wishlist', wishlist);
 
     document.getElementById('wishlist-nome-input').value = '';
     document.getElementById('wishlist-categoria-input').value = '';
@@ -712,7 +973,7 @@ function alternarStatusWishlist(index) {
     let wishlist = JSON.parse(localStorage.getItem('grimorio_wishlist')) || [];
     if (wishlist[index]) {
         wishlist[index].status = wishlist[index].status === 'adquirido' ? 'desejado' : 'adquirido';
-        localStorage.setItem('grimorio_wishlist', JSON.stringify(wishlist));
+        salvarNaNuvem('wishlist', wishlist);
         carregarWishlist();
     }
 }
@@ -794,166 +1055,8 @@ function excluirWishlist(index) {
     const wishlist = JSON.parse(localStorage.getItem('grimorio_wishlist')) || [];
     if (confirm(`Remover "${wishlist[index].nome}" da sua Wishlist?`)) {
         wishlist.splice(index, 1);
-        localStorage.setItem('grimorio_wishlist', JSON.stringify(wishlist));
+        salvarNaNuvem('wishlist', wishlist);
         carregarWishlist();
-    }
-}
-
-// 9. MÓDULO DA BIBLIOTECA VIRTUAL
-function filtrarBiblioteca(categoriaOuTag) {
-    categoriaAtualBiblioteca = categoriaOuTag;
-
-    const links = document.querySelectorAll('.cat-pdf-link');
-    links.forEach(link => {
-        if (link.innerText.includes(categoriaOuTag) || (categoriaOuTag === 'Todos' && link.innerText.includes('Todos'))) {
-            link.style.color = 'var(--dourado)';
-        } else {
-            link.style.color = 'var(--texto-principal)';
-        }
-    });
-
-    const tituloCat = document.getElementById('categoria-atual-titulo');
-    if (tituloCat) {
-        tituloCat.innerText = categoriaOuTag === 'Todos' ? 'Mostrando: Todos os PDFs' : `Mostrando: ${categoriaOuTag}`;
-    }
-
-    carregarLivrosNuvem();
-}
-
-function filtrarBibliotecaPorBusca(termo) {
-    termoBuscaBiblioteca = termo.toLowerCase().trim();
-    carregarLivrosNuvem();
-}
-
-function salvarLivroNuvem() {
-    const titleInput = document.getElementById('pdf-title-input');
-    const linkInput = document.getElementById('pdf-link-input');
-    const categorySelect = document.getElementById('pdf-category-select');
-    const tagInput = document.getElementById('pdf-tag-input');
-
-    const titulo = titleInput.value.trim();
-    const link = linkInput.value.trim();
-    const categoria = categorySelect ? categorySelect.value : 'Geral';
-    const rawTags = tagInput.value.trim();
-
-    if (!titulo || !link) {
-        alert('Por favor, preencha o título e o link do arquivo no Drive.');
-        return;
-    }
-
-    const arrayTags = rawTags ? rawTags.split(',').map(t => t.trim()).filter(t => t !== '') : [];
-
-    const livro = {
-        titulo: titulo,
-        link: link,
-        categoria: categoria,
-        tags: arrayTags
-    };
-
-    let acervo = JSON.parse(localStorage.getItem('grimorio_livros_nuvem')) || [];
-
-    if (livroEditandoIndex !== null) {
-        acervo[livroEditandoIndex] = livro;
-        livroEditandoIndex = null;
-    } else {
-        acervo.push(livro);
-    }
-
-    localStorage.setItem('grimorio_livros_nuvem', JSON.stringify(acervo));
-
-    titleInput.value = '';
-    linkInput.value = '';
-    tagInput.value = '';
-    if (categorySelect) categorySelect.selectedIndex = 0;
-
-    carregarLivrosNuvem();
-    mudarSecao('biblioteca');
-}
-
-function carregarLivrosNuvem() {
-    const acervoTotal = JSON.parse(localStorage.getItem('grimorio_livros_nuvem')) || [];
-    const containerLista = document.getElementById('lista-livros-pdfs');
-
-    if (!containerLista) return;
-
-    let acervo = acervoTotal.filter(item => {
-        const ehCategoria = categoriaAtualBiblioteca === 'Todos' || 
-            item.categoria === categoriaAtualBiblioteca || 
-            (item.tags && item.tags.some(t => t.toLowerCase() === categoriaAtualBiblioteca.toLowerCase()));
-
-        const bateuBusca = termoBuscaBiblioteca === '' ||
-            item.titulo.toLowerCase().includes(termoBuscaBiblioteca) ||
-            (item.categoria && item.categoria.toLowerCase().includes(termoBuscaBiblioteca)) ||
-            (item.tags && item.tags.some(t => t.toLowerCase().includes(termoBuscaBiblioteca)));
-
-        return ehCategoria && bateuBusca;
-    });
-
-    if (acervo.length === 0) {
-        containerLista.innerHTML = `
-            <div class="post-card" style="text-align: center; padding: 2rem;">
-                <p style="color: var(--texto-secundario);">Nenhum livro encontrado.</p>
-            </div>
-        `;
-    } else {
-        containerLista.innerHTML = '';
-        acervo.forEach((livro) => {
-            const indexReal = acervoTotal.indexOf(livro);
-
-            let tagsHtml = '';
-            if (livro.tags && livro.tags.length > 0) {
-                tagsHtml = livro.tags.map(tag => 
-                    `<span onclick="filtrarBiblioteca('${tag.replace(/'/g, "\\'")}')" style="border: 1px solid rgba(230, 200, 133, 0.3); padding: 0.15rem 0.5rem; border-radius: 12px; font-size: 0.75rem; color: var(--dourado); cursor: pointer; display: inline-block; margin-right: 0.3rem; margin-top: 0.3rem; background: rgba(34, 22, 43, 0.6);">#${tag}</span>`
-                ).join('');
-            }
-
-            containerLista.innerHTML += `
-                <div class="post-card" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 1rem;">
-                    <div style="flex: 1; min-width: 200px;">
-                        <h2 class="post-titulo" style="font-size: 1.4rem; margin: 0 0 0.3rem 0;">📄 ${livro.titulo}</h2>
-                        <div class="post-meta" style="font-size: 0.85rem; margin: 0 0 0.5rem 0;">${livro.categoria || 'Geral'}</div>
-                        <div>${tagsHtml}</div>
-                    </div>
-                    <div style="display: flex; gap: 0.5rem; flex-wrap: wrap; align-self: center;">
-                        <a href="${livro.link}" target="_blank" style="text-decoration: none;">
-                            <button class="btn-ler" style="margin-top: 0;">📖 Abrir PDF ↗</button>
-                        </a>
-                        <button class="btn-ler" style="margin-top: 0;" onclick="editarLivroNuvem(${indexReal})">✏️ Editar</button>
-                        <button class="btn-ler" style="margin-top: 0; border-color: rgba(229, 115, 115, 0.5); color: #e57373;" onclick="excluirLivroNuvem(${indexReal})">🗑️ Excluir</button>
-                    </div>
-                </div>
-            `;
-        });
-    }
-}
-
-function editarLivroNuvem(index) {
-    const acervo = JSON.parse(localStorage.getItem('grimorio_livros_nuvem')) || [];
-    const livro = acervo[index];
-
-    if (!livro) return;
-
-    livroEditandoIndex = index;
-
-    document.getElementById('pdf-title-input').value = livro.titulo;
-    document.getElementById('pdf-link-input').value = livro.link;
-    
-    const catSelect = document.getElementById('pdf-category-select');
-    if (catSelect && livro.categoria) {
-        catSelect.value = livro.categoria;
-    }
-    
-    document.getElementById('pdf-tag-input').value = livro.tags ? livro.tags.join(', ') : '';
-
-    mudarSecao('novo-livro');
-}
-
-function excluirLivroNuvem(index) {
-    const acervo = JSON.parse(localStorage.getItem('grimorio_livros_nuvem')) || [];
-    if (confirm(`Remover "${acervo[index].titulo}" da estante?`)) {
-        acervo.splice(index, 1);
-        localStorage.setItem('grimorio_livros_nuvem', JSON.stringify(acervo));
-        carregarLivrosNuvem();
     }
 }
 
@@ -989,12 +1092,12 @@ function importarBackup(event) {
             const dados = JSON.parse(e.target.result);
             
             if (confirm("Deseja restaurar este arquivo de backup? Seus dados atuais serão atualizados.")) {
-                if (dados.grimorio_posts) localStorage.setItem('grimorio_posts', JSON.stringify(dados.grimorio_posts));
-                if (dados.grimorio_livros_nuvem) localStorage.setItem('grimorio_livros_nuvem', JSON.stringify(dados.grimorio_livros_nuvem));
-                if (dados.grimorio_cursos) localStorage.setItem('grimorio_cursos', JSON.stringify(dados.grimorio_cursos));
-                if (dados.grimorio_wishlist) localStorage.setItem('grimorio_wishlist', JSON.stringify(dados.grimorio_wishlist));
-                if (dados.grimorio_escritos) localStorage.setItem('grimorio_escritos', JSON.stringify(dados.grimorio_escritos));
-                if (dados.grimorio_foto_perfil !== undefined) localStorage.setItem('grimorio_foto_perfil', dados.grimorio_foto_perfil);
+                if (dados.grimorio_posts) salvarNaNuvem('posts', dados.grimorio_posts);
+                if (dados.grimorio_livros_nuvem) salvarNaNuvem('livros_nuvem', dados.grimorio_livros_nuvem);
+                if (dados.grimorio_cursos) salvarNaNuvem('cursos', dados.grimorio_cursos);
+                if (dados.grimorio_wishlist) salvarNaNuvem('wishlist', dados.grimorio_wishlist);
+                if (dados.grimorio_escritos) salvarNaNuvem('escritos', dados.grimorio_escritos);
+                if (dados.grimorio_foto_perfil !== undefined) salvarNaNuvem('foto_perfil', dados.grimorio_foto_perfil);
 
                 carregarPerfil();
                 carregarPosts();
@@ -1004,7 +1107,7 @@ function importarBackup(event) {
                 carregarEscritos();
                 atualizarSubmenuFeiticos();
 
-                alert("Backup restaurado com sucesso! ✦");
+                alert("Backup restaurado e sincronizado com a nuvem com sucesso! ✦");
             }
         } catch (err) {
             alert("Erro ao carregar arquivo. Certifique-se de selecionar um arquivo .json válido.");
