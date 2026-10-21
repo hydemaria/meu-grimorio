@@ -114,41 +114,26 @@
             </div>
         </div>
 
-        <!-- 4. MEUS ESCRITOS -->
+        <!-- 4. MEUS ESCRITOS (LISTA DE OBRAS) -->
         <div id="meus-escritos" class="secao">
-            <h1 style="text-align: center; margin-bottom: 2rem; color: var(--texto-principal);">Meus Projetos Literários</h1>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+                <h1 style="margin: 0; color: var(--texto-principal);">Meus Projetos Literários</h1>
+                <button class="btn-ler" style="margin-top: 0; background-color: rgba(34, 22, 43, 0.8);" onclick="abrirEditorObra()">✦ Nova Obra / Capítulo</button>
+            </div>
             
-            <div class="post-card" style="text-align: center;">
-                <div class="post-meta">Romance Fantástico ✦ Em andamento</div>
-                <h2 class="post-titulo">O Despertar da Lua de Sangue</h2>
-                <p>A história de uma jovem bruxa que descobre os segredos esquecidos de uma linhagem antiga durante o eclipse...</p>
-                <button class="btn-ler" onclick="mudarSecao('indice-livro')">Ver Capítulos →</button>
+            <div id="lista-obras-escritos">
+                <!-- Obras e capítulos carregados via JS -->
             </div>
         </div>
 
-        <!-- 5. ÍNDICE DO LIVRO -->
+        <!-- 5. ÍNDICE DA OBRA -->
         <div id="indice-livro" class="secao">
-            <div class="livro-capa">
-                <div class="post-meta">Índice da Obra</div>
-                <h1 style="margin-bottom: 1rem;">O Despertar da Lua de Sangue</h1>
-                <div class="livro-sinopse">"Quando o céu se tinge de vermelho, as velhas promessas despertam."</div>
+            <div id="cabecalho-obra-indice">
+                <!-- Título e sinopse da obra carregados via JS -->
             </div>
 
-            <ul class="lista-capitulos">
-                <li>
-                    <div>
-                        <div class="capitulo-titulo">Prólogo: A Visão</div>
-                        <div class="capitulo-data">Escrito em 10 de Outubro</div>
-                    </div>
-                    <button class="btn-ler" style="margin: 0; padding: 0.3rem 1rem;" onclick="mudarSecao('leitura-capitulo')">Ler</button>
-                </li>
-                <li>
-                    <div>
-                        <div class="capitulo-titulo">Capítulo 1: A Cidade Cinzenta</div>
-                        <div class="capitulo-data">Escrito em 12 de Outubro</div>
-                    </div>
-                    <button class="btn-ler" style="margin: 0; padding: 0.3rem 1rem;" onclick="mudarSecao('leitura-capitulo')">Ler</button>
-                </li>
+            <ul class="lista-capitulos" id="lista-capitulos-obra">
+                <!-- Capítulos da obra selecionada -->
             </ul>
             
             <div style="text-align: center; margin-top: 2rem;">
@@ -158,16 +143,44 @@
 
         <!-- 6. LEITURA DO CAPÍTULO -->
         <div id="leitura-capitulo" class="secao">
-            <div class="post-meta" style="text-align: center;">O Despertar da Lua de Sangue</div>
-            <h1 style="text-align: center; margin-bottom: 2rem;">Capítulo 1: A Cidade Cinzenta</h1>
-            
-            <p>O vento soprava frio pelas ruas de pedra enquanto a noite caía lentamente sobre o vale...</p>
+            <div id="conteudo-leitura-capitulo">
+                <!-- Leitura dinâmica do capítulo -->
+            </div>
+        </div>
 
-            <div class="divisor">❖ ─── ✦ ─── ❖</div>
-            <div class="nav-capitulos">
-                <button class="btn-ler" style="border-color: rgba(230, 200, 133, 0.3);">&larr; Prólogo</button>
-                <button class="btn-ler" onclick="mudarSecao('indice-livro')">Índice</button>
-                <button class="btn-ler">Capítulo 2 &rarr;</button>
+        <!-- 6B. FORMULÁRIO: NOVA/EDITAR OBRA OU CAPÍTULO -->
+        <div id="editor-escrito" class="secao">
+            <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Criação Literária</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;" id="titulo-form-escrito">Escrever Capitulo / Obra</h1>
+
+            <div class="editor-container">
+                <div class="grupo-campo">
+                    <label>Título da Obra ou Livro</label>
+                    <input type="text" id="escrito-obra-input" placeholder="Ex: O Despertar da Lua de Sangue">
+                </div>
+
+                <div class="grupo-campo">
+                    <label>Título do Capítulo</label>
+                    <input type="text" id="escrito-capitulo-input" placeholder="Ex: Capítulo 1: A Cidade Cinzenta">
+                </div>
+
+                <div class="grupo-campo">
+                    <label>Sinopse ou Notas da Obra</label>
+                    <input type="text" id="escrito-sinopse-input" placeholder="Ex: Romance Fantástico · Em andamento">
+                </div>
+
+                <div class="editor-toolbar">
+                    <button class="editor-btn" onclick="formatarTextoEscrito('bold')"><b>B</b></button>
+                    <button class="editor-btn" onclick="formatarTextoEscrito('italic')"><i>I</i></button>
+                    <button class="editor-btn" onclick="formatarTextoEscrito('formatBlock', 'BLOCKQUOTE')">❝ Citação</button>
+                </div>
+
+                <div class="editor-area" id="escrito-conteudo-area" contenteditable="true" placeholder="Escreva seu capítulo aqui..."></div>
+
+                <div class="botoes-acao">
+                    <button class="btn-ler" onclick="mudarSecao('meus-escritos')" style="border-color: rgba(240, 234, 238, 0.3); color: var(--texto-secundario);">Cancelar</button>
+                    <button class="btn-ler" style="background-color: var(--dourado); color: var(--bg-fundo);" onclick="salvarEscrito()">Salvar Escrito ✦</button>
+                </div>
             </div>
         </div>
 
