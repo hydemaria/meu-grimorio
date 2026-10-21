@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grimório Lunar</title>
+    
+    <!-- Importando as fontes -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@400;700&family=EB+Garamond:ital,wght@0,400;0,700;1,400&family=IM+Fell+English:ital@0;1&display=swap" rel="stylesheet">
+
+    <!-- Favicon (Lua na aba) -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌙</text></svg>">
+
+    <!-- Conectando o arquivo CSS -->
+    <link rel="stylesheet" href="css/style.css">
+
+    <!-- Biblioteca CryptoJS (Usada apenas para desencriptar Meus Escritos) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+</head>
+<body>
+
+    <header>
+        <h1>✧ GRIMÓRIO ✧</h1>
+        <div class="subtitulo">Registros, Feitiços & Biblioteca Virtual</div>
+    </header>
+
+    <nav>
+        <a onclick="mudarSecao('feed')">✦ Início</a>
+        
+        <div class="dropdown">
+            <a>📜 Categorias ▾</a>
+            <div class="dropdown-content">
+                <a onclick="mudarSecao('feed')">✦ Feitiços</a>
+                <a onclick="mudarSecao('feed')">✦ Ervas</a>
+                <a onclick="mudarSecao('feed')">✦ Incensos</a>
+                <a onclick="mudarSecao('feed')">✦ Estudos</a>
+                <a onclick="mudarSecao('feed')">✦ Divinação</a>
+                <a onclick="mudarSecao('feed')">✦ Anotações</a>
+            </div>
+        </div>
+        
+        <a onclick="mudarSecao('meus-escritos')">🔒 Meus Escritos</a>
+        <a onclick="mudarSecao('biblioteca')">📚 Biblioteca</a>
+        <a onclick="mudarSecao('cursos')">🎓 Cursos</a>
+        <a onclick="mudarSecao('wishlist')">✨ Wishlist</a>
+        <a onclick="mudarSecao('quem-sou')">🔮 Quem Eu Sou</a>
+        <a onclick="mudarSecao('editor-post')" style="color: var(--dourado);">✍️ Novo Registro</a>
+    </nav>
+
+    <main>
+        <!-- 1. FEED DE POSTS (PÚBLICO) -->
+        <div id="feed" class="secao ativa">
+            <div class="post-card">
+                <div class="post-meta">20 de Outubro de 2026 ✦ Feitiços ✦ Banimento</div>
+                <h2 class="post-titulo">Banimento com Louro</h2>
+                <p>Um ritual simples e poderoso utilizando o fogo e a fumaça do louro para limpar energias estagnadas e afastar influências indesejadas do ambiente. Ideal para ser feito na lua minguante.</p>
+                <button class="btn-ler" onclick="mudarSecao('leitura-post')">Ler registro completo →</button>
+            </div>
+
+            <div class="post-card">
+                <div class="post-meta">18 de Outubro de 2026 ✦ Estudos ✦ Botânica Mágica</div>
+                <h2 class="post-titulo">O uso mágico do Alecrim</h2>
+                <p>Conhecida como a erva da memória e da alegria. Anotações sobre as correspondências planetárias do alecrim e como ele atua como um escudo protetor e purificador de lares.</p>
+                <button class="btn-ler" onclick="mudarSecao('leitura-post')">Ler registro completo →</button>
+            </div>
+        </div>
+
+        <!-- 2. LEITURA DO POST COMPLETO (PÚBLICO) -->
+        <div id="leitura-post" class="secao">
+            <div class="post-meta" style="text-align: center;">20 de Outubro de 2026 ✦ Feitiços</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">Banimento com Louro</h1>
+            
+            <p>Este é um dos meus feitiços favoritos pela simplicidade. O louro, associado ao elemento fogo e ao sol, possui propriedades fortíssimas de vitória, purificação e banimento.</p>
+            
+            <div class="divisor">❖ ─── ✦ ─── ❖</div>
+            
+            <h3 style="color: var(--dourado); font-family: var(--fonte-titulo); font-weight: normal;">Materiais Necessários</h3>
+            <ul>
+                <li>3 folhas de louro secas (inteiras, se possível)</li>
+                <li>Um caldeirão pequeno ou recipiente resistente ao calor</li>
+                <li>Fósforos ou isqueiro</li>
+            </ul>
+
+            <h3 style="color: var(--dourado); font-family: var(--fonte-titulo); font-weight: normal;">O Ritual</h3>
+            <p>Em um ambiente tranquilo, segure as folhas de louro. Se desejar, escreva com a caneta na folha aquilo que você deseja banir.</p>
+
+            <button class="btn-ler" onclick="mudarSecao('feed')" style="margin-top: 3rem;">← Voltar para o Início</button>
+        </div>
+
+        <!-- 3. EDITOR DE TEXTOS / NOVO REGISTRO (PÚBLICO) -->
+        <div id="editor-post" class="secao">
+            <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Novo texto no Grimório</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">Escrever Registro</h1>
+
+            <div class="editor-container">
+                <div class="grupo-campo">
+                    <label>Título do Registro</label>
+                    <input type="text" placeholder="Ex: Banimento com Louro...">
+                </div>
+
+                <div class="linha-campos">
+                    <div class="campo">
+                        <label>Categoria</label>
+                        <select>
+                            <option value="">Selecione...</option>
+                            <option value="feiticos">Feitiços</option>
+                            <option value="ervas">Ervas</option>
+                            <option value="incensos">Incensos</option>
+                            <option value="estudos">Estudos</option>
+                            <option value="divinacao">Divinação</option>
+                            <option value="anotacoes">Anotações</option>
+                        </select>
+                    </div>
+                    <div class="campo">
+                        <label>Tags</label>
+                        <input type="text" placeholder="ex: fogo, proteção, louro">
+                    </div>
+                </div>
+
+                <div class="editor-toolbar">
+                    <button class="editor-btn" title="Negrito"><b>B</b></button>
+                    <button class="editor-btn" title="Itálico"><i>I</i></button>
+                    <button class="editor-btn" title="Lista com Marcadores">• Lista</button>
+                    <button class="editor-btn" title="Citação">❝ Citação</button>
+                    <button class="editor-btn" title="Divisor Ornamental">✦ Divisor</button>
+                </div>
+
+                <div class="editor-area" contenteditable="true" placeholder="Escreva sua magia aqui..."></div>
+
+                <div class="botoes-acao">
+                    <button class="btn-ler" onclick="mudarSecao('feed')" style="border-color: rgba(240, 234, 238, 0.3); color: var(--texto-secundario);">Cancelar</button>
+                    <button class="btn-ler" style="background-color: rgba(34, 22, 43, 0.8);">Salvar Rascunho</button>
+                    <button class="btn-ler" style="background-color: var(--dourado); color: var(--bg-fundo);">Publicar Registro</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. MEUS ESCRITOS (PROTEGIDO) -->
+        <div id="meus-escritos" class="secao">
+            <h1 style="text-align: center; margin-bottom: 2rem; color: var(--texto-principal);">Meus Projetos Literários</h1>
+            
+            <div class="post-card" style="text-align: center;">
+                <div class="post-meta">Romance Fantástico ✦ Em andamento</div>
+                <h2 class="post-titulo">O Despertar da Lua de Sangue</h2>
+                <p>A história de uma jovem bruxa que descobre os segredos esquecidos de uma linhagem antiga durante o eclipse...</p>
+                <button class="btn-ler" onclick="mudarSecao('indice-livro')">Ver Capítulos →</button>
+            </div>
+        </div>
+
+        <!-- 5. ÍNDICE DO LIVRO (PROTEGIDO) -->
+        <div id="indice-livro" class="secao">
+            <div class="livro-capa">
+                <div class="post-meta">Índice da Obra</div>
+                <h1 style="margin-bottom: 1rem;">O Despertar da Lua de Sangue</h1>
+                <div class="livro-sinopse">"Quando o céu se tinge de vermelho, as velhas promessas despertam."</div>
+            </div>
+
+            <ul class="lista-capitulos">
+                <li>
+                    <div>
+                        <div class="capitulo-titulo">Prólogo: A Visão</div>
+                        <div class="capitulo-data">Escrito em 10 de Outubro</div>
+                    </div>
+                    <button class="btn-ler" style="margin: 0; padding: 0.3rem 1rem;" onclick="mudarSecao('leitura-capitulo')">Ler</button>
+                </li>
+                <li>
+                    <div>
+                        <div class="capitulo-titulo">Capítulo 1: A Cidade Cinzenta</div>
+                        <div class="capitulo-data">Escrito em 12 de Outubro</div>
+                    </div>
+                    <button class="btn-ler" style="margin: 0; padding: 0.3rem 1rem;" onclick="mudarSecao('leitura-capitulo')">Ler</button>
+                </li>
+            </ul>
+            
+            <div style="text-align: center; margin-top: 2rem;">
+                <button class="btn-ler" onclick="mudarSecao('meus-escritos')">← Voltar para Obras</button>
+            </div>
+        </div>
+
+        <!-- 6. LEITURA DO CAPÍTULO -->
+        <div id="leitura-capitulo" class="secao">
+            <div class="post-meta" style="text-align: center;">O Despertar da Lua de Sangue</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">Capítulo 1: A Cidade Cinzenta</h1>
+            
+            <p>Escreva seu capítulo normalmente aqui, como qualquer texto comum...</p>
+
+            <div class="divisor">❖ ─── ✦ ─── ❖</div>
+            <div class="nav-capitulos">
+                <button class="btn-ler" style="border-color: rgba(230, 200, 133, 0.3);">&larr; Prólogo</button>
+                <button class="btn-ler" onclick="mudarSecao('indice-livro')">Índice</button>
+                <button class="btn-ler">Capítulo 2 &rarr;</button>
+            </div>
+        </div>
+
+        <!-- 7. BIBLIOTECA VIRTUAL (PÚBLICO) -->
+        <div id="biblioteca" class="secao">
+            <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Acervo Pessoal na Nuvem</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">Biblioteca Virtual</h1>
+
+            <div style="display: flex; gap: 2rem; align-items: flex-start; flex-wrap: wrap;">
+                <aside style="flex: 1; min-width: 230px; background-color: var(--bg-card); padding: 1.5rem; border: 1px solid rgba(230, 200, 133, 0.15); border-radius: 4px;">
+                    <h3 style="font-family: var(--fonte-titulo); color: var(--dourado); margin-top: 0; margin-bottom: 1rem; font-weight: normal; font-size: 1.2rem;">Domínios</h3>
+                    <ul style="list-style: none; padding: 0; margin: 0; line-height: 2.2; font-size: 0.95rem;">
+                        <li><a class="cat-pdf-link" onclick="filtrarBiblioteca('Todos')" style="color: var(--dourado); cursor: pointer;">✦ Todos os PDFs</a></li>
+                        <li><a class="cat-pdf-link" onclick="filtrarBiblioteca('🔮 DIVINAÇÃO')" style="color: var(--texto-principal); cursor: pointer;">🔮 Divinação</a></li>
+                        <li><a class="cat-pdf-link" onclick="filtrarBiblioteca('🌿 BRUXARIA')" style="color: var(--texto-principal); cursor: pointer;">🌿 Bruxaria</a></li>
+                        <li><a class="cat-pdf-link" onclick="filtrarBiblioteca('🔥 MAGIA')" style="color: var(--texto-principal); cursor: pointer;">🔥 Magia</a></li>
+                        <li><a class="cat-pdf-link" onclick="filtrarBiblioteca('🌙 ASTROLOGIA')" style="color: var(--texto-principal); cursor: pointer;">🌙 Astrologia</a></li>
+                        <li><a class="cat-pdf-link" onclick="filtrarBiblioteca('🜏 OCULTISMO')" style="color: var(--texto-principal); cursor: pointer;">🜏 Ocultismo</a></li>
+                        <li><a class="cat-pdf-link" onclick="filtrarBiblioteca('👁️ ENTIDADES')" style="color: var(--texto-principal); cursor: pointer;">👁️ Entidades</a></li>
+                        <li><a class="cat-pdf-link" onclick="filtrarBiblioteca('🏛️ TRADIÇÕES')" style="color: var(--texto-principal); cursor: pointer;">🏛️ Tradições</a></li>
+                        <li><a class="cat-pdf-link" onclick="filtrarBiblioteca('Geral')" style="color: var(--texto-principal); cursor: pointer;">✦ Geral / Outros</a></li>
+                    </ul>
+                </aside>
+
+                <div style="flex: 3; min-width: 280px;">
+                    <div class="grupo-campo" style="margin-bottom: 1.5rem;">
+                        <input type="text" id="pdf-search-input" placeholder="🔍 Pesquisar por título, assunto ou tag em tempo real..." oninput="filtrarBibliotecaPorBusca(this.value)" style="width: 100%; box-sizing: border-box;">
+                    </div>
+
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                        <span id="categoria-atual-titulo" style="font-family: var(--fonte-detalhe); color: var(--dourado); font-style: italic; font-size: 1.1rem;">Mostrando: Todos os PDFs</span>
+                        <button class="btn-ler" style="margin-top: 0; background-color: rgba(34, 22, 43, 0.8);" onclick="mudarSecao('novo-livro')">✦ Catalogar Livro</button>
+                    </div>
+
+                    <div id="lista-livros-pdfs">
+                        <!-- Livros carregados via JS -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. FORMULÁRIO DE CATALOGAÇÃO (PÚBLICO) -->
+        <div id="novo-livro" class="secao">
+            <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Acervo Digital</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">Catalogar Livro da Nuvem</h1>
+            
+            <div class="editor-container">
+                <div class="grupo-campo">
+                    <label>Título do Livro / Documento</label>
+                    <input type="text" id="pdf-title-input" placeholder="Ex: Aradia: O Evangelho das Bruxas">
+                </div>
+
+                <div class="grupo-campo">
+                    <label>Link de Compartilhamento na Nuvem (Google Drive, Mega, OneDrive, etc.)</label>
+                    <input type="text" id="pdf-link-input" placeholder="Cole aqui o link do arquivo salvo no seu Drive">
+                </div>
+
+                <div class="linha-campos">
+                    <div class="campo">
+                        <label>Domínio Principal</label>
+                        <select id="pdf-category-select">
+                            <option value="Geral">Geral / Outros</option>
+                            <option value="🔮 DIVINAÇÃO">🔮 Divinação</option>
+                            <option value="🌿 BRUXARIA">🌿 Bruxaria</option>
+                            <option value="🔥 MAGIA">🔥 Magia</option>
+                            <option value="🌙 ASTROLOGIA">🌙 Astrologia</option>
+                            <option value="🜏 OCULTISMO">🜏 Ocultismo</option>
+                            <option value="👁️ ENTIDADES">👁️ Entidades</option>
+                            <option value="🏛️ TRADIÇÕES">🏛️ Tradições</option>
+                        </select>
+                    </div>
+                    <div class="campo">
+                        <label>Etiquetas / Tags (separadas por vírgula)</label>
+                        <input type="text" id="pdf-tag-input" placeholder="Ex: Ervas, Resinas, Defumação, Magia Elemental">
+                    </div>
+                </div>
+
+                <div class="botoes-acao">
+                    <button class="btn-ler" onclick="mudarSecao('biblioteca')" style="border-color: rgba(240, 234, 238, 0.3); color: var(--texto-secundario);">Cancelar</button>
+                    <button class="btn-ler" style="background-color: var(--dourado); color: var(--bg-fundo);" onclick="salvarLivroNuvem()">Salvar na Estante ✦</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 9. QUEM EU SOU (PÚBLICO) -->
+        <div id="quem-sou" class="secao">
+            <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Anotações sobre a autora</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">Quem Eu Sou</h1>
+
+            <div class="post-card" style="display: flex; gap: 2rem; align-items: center; flex-wrap: wrap;">
+                <div style="text-align: center; margin: 0 auto;">
+                    <div id="avatar-perfil" style="width: 160px; height: 160px; border-radius: 50%; border: 2px solid var(--dourado); background: rgba(34, 22, 43, 0.8); display: flex; align-items: center; justify-content: center; font-family: var(--fonte-detalhe); color: var(--dourado); font-size: 2.5rem; overflow: hidden;">
+                        🔮
+                    </div>
+                    <button class="btn-ler" style="font-size: 0.8rem; padding: 0.3rem 0.8rem; margin-top: 0.8rem;" onclick="alterarFotoPerfil()">📷 Alterar Foto</button>
+                </div>
+                <div style="flex: 1; min-width: 250px;">
+                    <h2 class="post-titulo" style="margin-bottom: 0.5rem;">Boas-vindas ao meu espaço digital</h2>
+                    <p style="color: var(--texto-secundario); font-style: italic; margin-bottom: 1rem;">Estudante de tecnologia, praticante de magia e artesã dos meus próprios rituais.</p>
+                    <p>Este blog e biblioteca virtual nasceram da necessidade de ter um refúgio calmo e seguro para catalogar meus estudos de feitiçaria, herbalismo, literatura, códigos e reflexões pessoais.</p>
+                    
+                    <div class="divisor" style="margin: 1.5rem 0;">❖ ─── ✦ ─── ❖</div>
+
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap; font-size: 0.95rem;">
+                        <span style="border: 1px solid rgba(230, 200, 133, 0.3); padding: 0.3rem 0.8rem; border-radius: 20px;">🌙 Práticas Ecléticas</span>
+                        <span style="border: 1px solid rgba(230, 200, 133, 0.3); padding: 0.3rem 0.8rem; border-radius: 20px;">💻 Tecnologia & Linux</span>
+                        <span style="border: 1px solid rgba(230, 200, 133, 0.3); padding: 0.3rem 0.8rem; border-radius: 20px;">📜 Tarot & Oráculos</span>
+                        <span style="border: 1px solid rgba(230, 200, 133, 0.3); padding: 0.3rem 0.8rem; border-radius: 20px;">🕯️ Incensos Naturais</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 10. CURSOS E ESTUDOS (PÚBLICO) -->
+        <div id="cursos" class="secao">
+            <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Jornada de Aprendizado</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">Cursos & Estudos</h1>
+
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
+                <button class="btn-ler" style="margin-top: 0; background-color: rgba(34, 22, 43, 0.8);" onclick="mudarSecao('novo-curso')">✦ Adicionar Curso</button>
+            </div>
+
+            <div id="lista-cursos">
+                <!-- Lista gerenciada dinamicamente via JS -->
+            </div>
+        </div>
+
+        <!-- 11. FORMULÁRIO: ADICIONAR / EDITAR CURSO (PÚBLICO) -->
+        <div id="novo-curso" class="secao">
+            <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Expandindo horizontes</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">Cadastrar Curso / Estudo</h1>
+
+            <div class="editor-container">
+                <div class="grupo-campo">
+                    <label>Nome do Curso ou Assunto</label>
+                    <input type="text" placeholder="Ex: Desenvolvimento Web & Python">
+                </div>
+
+                <div class="grupo-campo">
+                    <label>Foco / Instituição / Detalhes</label>
+                    <input type="text" placeholder="Ex: Lógica, Automações & Projetos Práticos">
+                </div>
+
+                <div class="grupo-campo">
+                    <label>Status do Aprendizado</label>
+                    <select>
+                        <option value="andamento">Em Andamento</option>
+                        <option value="concluido">Concluído</option>
+                        <option value="pausado">Pausado / Futuro</option>
+                    </select>
+                </div>
+
+                <div class="grupo-campo">
+                    <label>Descrição Breve</label>
+                    <input type="text" placeholder="Resumo do que está sendo estudado...">
+                </div>
+
+                <div class="botoes-acao">
+                    <button class="btn-ler" onclick="mudarSecao('cursos')" style="border-color: rgba(240, 234, 238, 0.3); color: var(--texto-secundario);">Cancelar</button>
+                    <button class="btn-ler" style="background-color: var(--dourado); color: var(--bg-fundo);">Salvar Curso ✦</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 12. WISHLIST (PÚBLICO) -->
+        <div id="wishlist" class="secao">
+            <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Lista de Desejos & Encantamentos</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">Wishlist</h1>
+
+            <div style="display: flex; justify-content: flex-end; margin-bottom: 2rem;">
+                <button class="btn-ler" style="margin-top: 0; background-color: rgba(34, 22, 43, 0.8);" onclick="mudarSecao('novo-item-wishlist')">✦ Adicionar Item</button>
+            </div>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1.5rem;">
+                <!-- Itens carregados via JS -->
+            </div>
+        </div>
+
+        <!-- 13. ADICIONAR ITEM NA WISHLIST (PÚBLICO) -->
+        <div id="novo-item-wishlist" class="secao">
+            <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Encantamentos Futuros</div>
+            <h1 style="text-align: center; margin-bottom: 2rem;">Adicionar Item à Wishlist</h1>
+
+            <div class="editor-container">
+                <div class="grupo-campo">
+                    <label>Nome do Item / Objeto</label>
+                    <input type="text" placeholder="Ex: Bíblia Clássica do Tarot">
+                </div>
+
+                <div class="grupo-campo">
+                    <label>Categoria / Detalhe</label>
+                    <input type="text" placeholder="Ex: Livro Físico, Ferramenta, Incenso...">
+                </div>
+
+                <div class="linha-campos">
+                    <div class="campo">
+                        <label>Link da Foto (URL da Imagem)</label>
+                        <input type="text" placeholder="Cole a URL da imagem da foto">
+                    </div>
+                    <div class="campo">
+                        <label>Link de Compra (URL da Loja)</label>
+                        <input type="text" placeholder="Cole a URL do produto na loja">
+                    </div>
+                </div>
+
+                <div class="grupo-campo">
+                    <label>Status</label>
+                    <select>
+                        <option value="desejado">Desejado</option>
+                        <option value="adquirido">Adquirido</option>
+                    </select>
+                </div>
+
+                <div class="botoes-acao">
+                    <button class="btn-ler" onclick="mudarSecao('wishlist')" style="border-color: rgba(240, 234, 238, 0.3); color: var(--texto-secundario);">Cancelar</button>
+                    <button class="btn-ler" style="background-color: var(--dourado); color: var(--bg-fundo);">Guardar na Wishlist ✦</button>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer>
+        <p>☾ ⚝ ☽</p>
+        <p>Grimório Pessoal · Acesso Privado</p>
+
+        <div style="margin-top: 1.5rem; display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+            <button class="btn-ler" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;" onclick="exportarBackup()">📥 Baixar Backup</button>
+            <button class="btn-ler" style="font-size: 0.8rem; padding: 0.3rem 0.8rem;" onclick="document.getElementById('import-file-input').click()">📤 Importar Backup</button>
+            <input type="file" id="import-file-input" accept=".json" style="display: none;" onchange="importarBackup(event)">
+        </div>
+    </footer>
+
+    <!-- Conectando o arquivo JS -->
+    <script src="js/script.js"></script>
+</body>
+</html>
