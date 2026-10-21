@@ -220,25 +220,41 @@
             </div>
         </div>
 
-        <!-- 8. FORMULÁRIO DE CATALOGAÇÃO -->
+        <!-- 8. CATALOGAR LIVRO OU SUBIR PDFS -->
         <div id="novo-livro" class="secao">
             <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Acervo Digital</div>
-            <h1 style="text-align: center; margin-bottom: 2rem;">Catalogar Livro da Nuvem</h1>
+            <h1>Adicionar Livros à Biblioteca</h1>
             
             <div class="editor-container">
+                <!-- UPLOAD MÚLTIPLO DO COMPUTADOR -->
+                <div style="border: 1px dashed var(--dourado); padding: 1.5rem; text-align: center; margin-bottom: 2rem; background: rgba(34, 22, 43, 0.5); border-radius: 4px;">
+                    <h3 style="color: var(--dourado); margin-top: 0;">📂 Upload Direto do Computador (Múltiplos PDFs)</h3>
+                    <p style="font-size: 0.9rem; color: var(--texto-secundario);">Escolha um ou vários arquivos PDF do seu PC para enviar direto para a nuvem.</p>
+                    
+                    <input type="file" id="pdf-files-multiple" accept="application/pdf" multiple style="display: none;" onchange="atualizarNomeArquivosSelecionados(this)">
+                    <button class="btn-ler" onclick="document.getElementById('pdf-files-multiple').click()" style="margin: 1rem 0;">📁 Selecionar PDFs do PC</button>
+                    
+                    <div id="status-arquivos-selecionados" style="font-size: 0.85rem; color: var(--dourado); font-style: italic;">Nenhum arquivo selecionado</div>
+                    
+                    <button class="btn-ler" style="background-color: var(--dourado); color: var(--bg-fundo); width: 100%; margin-top: 1rem;" onclick="fazerUploadMultiplosPDFs()">Enviar Arquivos Selecionados ✦</button>
+                </div>
+
+                <div class="divisor" style="margin: 2rem 0;">❖ ─── OU LINK MANUAL (DRIVE/OUTROS) ─── ❖</div>
+
+                <!-- CADASTRO POR LINK INDIVIDUAL -->
                 <div class="grupo-campo">
-                    <label>Título do Livro / Documento</label>
+                    <label>Título do Livro</label>
                     <input type="text" id="pdf-title-input" placeholder="Ex: Aradia: O Evangelho das Bruxas">
                 </div>
 
                 <div class="grupo-campo">
-                    <label>Link de Compartilhamento na Nuvem</label>
-                    <input type="text" id="pdf-link-input" placeholder="Cole aqui o link do arquivo salvo no seu Drive">
+                    <label>Link Direto ou do Google Drive</label>
+                    <input type="text" id="pdf-link-input" placeholder="https://drive.google.com/file/d/...">
                 </div>
 
-                <div class="linha-campos">
-                    <div class="campo">
-                        <label>Domínio Principal</label>
+                <div class="grupo-grid-2">
+                    <div class="grupo-campo">
+                        <label>Domínio / Categoria</label>
                         <select id="pdf-category-select">
                             <option value="Geral">Geral / Outros</option>
                             <option value="🔮 DIVINAÇÃO">🔮 Divinação</option>
@@ -250,19 +266,18 @@
                             <option value="🏛️ TRADIÇÕES">🏛️ Tradições</option>
                         </select>
                     </div>
-                    <div class="campo">
-                        <label>Etiquetas / Tags (separadas por vírgula)</label>
-                        <input type="text" id="pdf-tag-input" placeholder="Ex: Ervas, Resinas, Defumação">
+                    <div class="grupo-campo">
+                        <label>Tags de Busca (separadas por vírgula)</label>
+                        <input type="text" id="pdf-tag-input" placeholder="Ex: bruxaria, historia, pdf">
                     </div>
                 </div>
 
                 <div class="botoes-acao">
                     <button class="btn-ler" onclick="mudarSecao('biblioteca')" style="border-color: rgba(240, 234, 238, 0.3); color: var(--texto-secundario);">Cancelar</button>
-                    <button class="btn-ler" style="background-color: var(--dourado); color: var(--bg-fundo);" onclick="salvarLivroNuvem()">Salvar na Estante ✦</button>
+                    <button class="btn-ler" style="background-color: var(--dourado); color: var(--bg-fundo);" onclick="salvarLivroNuvem()">Salvar Link ✦</button>
                 </div>
             </div>
         </div>
-
         <!-- 9. QUEM EU SOU (UPLOAD DIRETO DE FOTO DO COMPUTADOR) -->
         <div id="quem-sou" class="secao">
             <div class="post-meta" style="text-align: center; margin-bottom: 1rem;">Anotações sobre a autora</div>
@@ -406,8 +421,7 @@
         </div>
 
     </main>
-
-    <footer>
+<footer>
         <p>☾ ⚝ ☽</p>
         <p>Grimório Pessoal · Acesso Privado</p>
 
@@ -418,6 +432,12 @@
         </div>
     </footer>
 
+    <!-- 1. Primeiro as bibliotecas do Firebase -->
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-database-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-storage-compat.js"></script>
+
+    <!-- 2. Depois o seu script principal -->
     <script src="js/script.js"></script>
 </body>
 </html>
